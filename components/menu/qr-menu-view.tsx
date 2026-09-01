@@ -10,7 +10,7 @@ import { LoadingSkeleton } from "@/components/ui/loading-skeleton"
 import { YaliPreloader } from "@/components/ui/yali-preloader"
 import { RegisterServiceWorker } from "@/components/pwa/register-sw"
 import { InstallPrompt } from "@/components/pwa/install-prompt"
-import { Sparkles, Search, X, UtensilsCrossed } from "lucide-react"
+import { Sparkles, Play, Search, X, UtensilsCrossed } from "lucide-react"
 
 /*
  * DEAKTİVE EDİLEN BİLEŞENLER (Gerektiğinde açılmak üzere korundu):
@@ -25,6 +25,7 @@ function MenuMainContent() {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [replayPreloader, setReplayPreloader] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   /*
@@ -81,8 +82,10 @@ function MenuMainContent() {
 
       {/* Yalı 3D Leaf Opening Entrance Preloader Animasyonu */}
       <YaliPreloader
+        forcePlay={replayPreloader}
         tableName="Yalı Restaurant"
         tableNo={1}
+        onComplete={() => setReplayPreloader(false)}
       />
 
       <div className="flex-1 flex flex-col w-full max-w-lg sm:max-w-xl md:max-w-2xl lg:max-w-3xl mx-auto pb-24 min-h-screen relative bg-gradient-to-br from-[#B98A4A]/5 via-transparent to-[#D8C4A0]/5">
@@ -91,8 +94,6 @@ function MenuMainContent() {
          * DEAKTİVE EDİLEN SİPARİŞ DURUM ÇUBUĞU:
          * <StatusBanner />
          */}
-
-
 
         {/* Category Nav Header */}
         <CategoryNav
@@ -108,112 +109,79 @@ function MenuMainContent() {
           onToggleSearch={toggleSearch}
         />
 
-        {/* Restaurant Header Banner */}
-        <div className="px-3 sm:px-4 mt-3">
-          <div className="p-4 sm:p-5 rounded-3xl glass-panel text-center relative overflow-hidden border border-border shadow-sm">
-            <div className="absolute -right-4 -top-4 w-20 h-20 bg-primary/15 rounded-full blur-2xl pointer-events-none" />
-            <h1 className="font-heading font-black text-2xl sm:text-3xl text-primary leading-tight flex items-center justify-center gap-2">
-              <Sparkles className="h-4 w-4 sm:h-5 sm:w-5 text-primary animate-pulse" />
-              YALI RESTAURANT
-            </h1>
-            <p className="text-[10px] sm:text-xs text-foreground/60 mt-1 uppercase tracking-widest font-extrabold">
-              {lang === 'tr' ? "DİJİTAL QR MENÜ" : "DIGITAL QR MENU"}
-            </p>
-          </div>
-        </div>
-
-        {/* Expandable Search Input (Only shown when search button is clicked) */}
+        {/* Search Bar Input Overlay */}
         {isSearchOpen && (
-          <div className="px-3 sm:px-4 mt-3 animate-in fade-in slide-in-from-top-3 duration-300">
-            <div className="relative flex items-center w-full">
-              <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-primary pointer-events-none">
-                <Search className="h-4 w-4" />
-              </div>
+          <div className="px-3.5 sm:px-4 pt-3 pb-1 animate-in fade-in slide-in-from-top-2 duration-200">
+            <div className="relative flex items-center">
+              <Search className="absolute left-3.5 h-4 w-4 text-foreground/45" />
               <input
                 ref={searchInputRef}
                 type="text"
+                placeholder={lang === 'tr' ? "Yemek, içecek, tatlı veya alerjen ara..." : "Search dishes, drinks, desserts..."}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder={t('searchPlaceholder')}
-                autoFocus
-                className="w-full pl-10 pr-24 py-3 text-xs sm:text-sm rounded-2xl glass-panel border border-primary/50 bg-card/95 text-foreground placeholder:text-foreground/45 focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all shadow-lg"
+                className="w-full pl-10 pr-10 py-2.5 rounded-2xl bg-secondary/70 dark:bg-card border border-border focus:border-primary/50 focus:ring-2 focus:ring-primary/20 text-xs sm:text-sm font-semibold text-foreground outline-none transition-all placeholder:text-foreground/40 shadow-xs"
               />
-              <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
-                {searchQuery && (
-                  <button
-                    type="button"
-                    onClick={() => setSearchQuery("")}
-                    className="p-1.5 rounded-full text-foreground/40 hover:text-foreground hover:bg-secondary transition-all cursor-pointer"
-                    title={t('clearSearch')}
-                  >
-                    <X className="h-3.5 w-3.5" />
-                  </button>
-                )}
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-3 p-1 rounded-full hover:bg-muted text-foreground/45 hover:text-foreground cursor-pointer"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
+            {isSearching && (
+              <div className="mt-2 px-1 flex items-center justify-between text-[11px] font-bold text-foreground/55">
+                <span>"{searchQuery}" için {filteredProducts.length} sonuç</span>
                 <button
                   type="button"
                   onClick={() => {
-                    setIsSearchOpen(false);
                     setSearchQuery("");
+                    setIsSearchOpen(false);
                   }}
-                  className="px-2.5 py-1 text-[11px] font-extrabold rounded-xl bg-secondary/80 hover:bg-secondary text-foreground/70 hover:text-foreground transition-all cursor-pointer border border-border"
+                  className="text-primary hover:underline cursor-pointer"
                 >
-                  {lang === 'tr' ? "Kapat" : "Close"}
+                  Aramayı Temizle
                 </button>
               </div>
+            )}
+          </div>
+        )}
+
+        {/* Category Description Banner */}
+        {!isSearching && (
+          <div className="px-4 pt-4 pb-2">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="font-heading font-black text-xl sm:text-2xl text-foreground tracking-wide">
+                  {categories.find(c => c.id === activeCategory)?.[lang === 'tr' ? 'ad_tr' : 'ad_en'] || (lang === 'tr' ? 'Menü' : 'Menu')}
+                </h1>
+                <p className="text-[11px] sm:text-xs text-foreground/60 font-semibold mt-0.5">
+                  {lang === 'tr' ? 'Özenle seçilmiş gurme lezzetler' : 'Carefully crafted gourmet selections'}
+                </p>
+              </div>
+              <span className="text-[10px] sm:text-xs font-black uppercase tracking-wider px-2.5 py-1 rounded-full bg-primary/10 text-primary border border-primary/20">
+                {filteredProducts.length} {lang === 'tr' ? 'Çeşit' : 'Items'}
+              </span>
             </div>
           </div>
         )}
 
-        {/* Products Grid */}
-        <div className="px-3 sm:px-4 mt-5">
-          <div className="flex items-center justify-between px-1 mb-3">
-            <div className="flex items-center gap-2">
-              <h2 className="font-heading font-black text-base sm:text-lg text-foreground">
-                {isSearching ? (
-                  <span className="flex items-center gap-1.5 text-primary">
-                    <Search className="h-4 w-4" />
-                    {t('searchResults')}
-                  </span>
-                ) : (
-                  activeCategory && (
-                    lang === 'tr'
-                      ? categories.find(c => c.id === activeCategory)?.ad_tr
-                      : categories.find(c => c.id === activeCategory)?.ad_en
-                  )
-                )}
-              </h2>
-              {isSearching && (
-                <button
-                  type="button"
-                  onClick={() => setSearchQuery("")}
-                  className="text-[11px] font-bold text-foreground/50 hover:text-primary transition-colors underline cursor-pointer"
-                >
-                  ({t('clearSearch')})
-                </button>
-              )}
-            </div>
-            <span className="text-[11px] sm:text-xs text-foreground/50 font-bold">
-              {filteredProducts.length} {t('pieces')}
-            </span>
-          </div>
-          
+        {/* Product Grid */}
+        <div className="px-3.5 sm:px-4 pt-2">
           {filteredProducts.length === 0 ? (
-            <div className="p-8 rounded-3xl glass-panel flex flex-col items-center justify-center text-center gap-3 border border-border mt-2">
-              <div className="p-3 bg-primary/10 rounded-2xl text-primary border border-primary/20">
-                {isSearching ? <Search className="h-6 w-6" /> : <UtensilsCrossed className="h-6 w-6" />}
+            <div className="flex flex-col items-center justify-center py-16 text-center px-4">
+              <div className="p-4 rounded-full bg-primary/10 text-primary border border-primary/20 mb-3">
+                <UtensilsCrossed className="h-8 w-8" />
               </div>
-              <p className="text-sm font-bold text-foreground/80">
-                {isSearching ? t('noSearchResults') : "Bu kategoride ürün bulunamadı."}
+              <h3 className="font-heading font-bold text-base text-foreground">
+                {lang === 'tr' ? 'Bu kategoride henüz ürün bulunmuyor' : 'No items found in this category'}
+              </h3>
+              <p className="text-xs text-foreground/60 mt-1 max-w-xs">
+                {lang === 'tr' ? 'Lütfen diğer lezzet kategorilerimize göz atın.' : 'Please explore our other delicious categories.'}
               </p>
-              {isSearching && (
-                <button
-                  type="button"
-                  onClick={() => setSearchQuery("")}
-                  className="mt-2 px-4 py-2 rounded-full bg-primary text-primary-foreground font-bold text-xs shadow-md hover:bg-primary/90 transition-all cursor-pointer"
-                >
-                  {t('clearSearch')}
-                </button>
-              )}
             </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5 sm:gap-3.5 md:gap-4">
@@ -228,7 +196,17 @@ function MenuMainContent() {
           )}
         </div>
 
-
+        {/* Preloader Replay Helper at Bottom */}
+        <div className="mt-10 mb-4 flex justify-center px-4">
+          <button
+            type="button"
+            onClick={() => setReplayPreloader(true)}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-secondary/80 hover:bg-secondary text-[11px] sm:text-xs font-bold text-foreground/60 hover:text-foreground border border-border cursor-pointer transition-all shadow-xs"
+          >
+            <Play className="h-3 w-3 text-primary" />
+            <span>Açılış Animasyonunu Tekrar Oynat</span>
+          </button>
+        </div>
 
         {/* Product Detail Dialog (Photo, Allergens, Info) */}
         <ProductDetailDialog
@@ -255,12 +233,7 @@ export function QrMenuView({
   initialProducts?: Product[];
 }) {
   return (
-    <TableProvider
-      tableId="yali-main"
-      token="qr-token"
-      initialCategories={initialCategories}
-      initialProducts={initialProducts}
-    >
+    <TableProvider initialCategories={initialCategories} initialProducts={initialProducts}>
       <MenuMainContent />
     </TableProvider>
   );
