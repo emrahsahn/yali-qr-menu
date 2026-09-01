@@ -340,7 +340,7 @@ export function YaliPreloader({
             </div>
           )}
 
-          {/* Action Buttons: "Menüyü İncele" & "Açılışı Tekrar Gör" */}
+          {/* Action Button: "Menüyü İncele" */}
           <div className="flex flex-col gap-2.5 sm:gap-3 w-full max-w-[280px] sm:max-w-xs md:max-w-sm">
             <button
               type="button"
@@ -350,15 +350,6 @@ export function YaliPreloader({
               <Utensils className="h-4 w-4" />
               <span>Menüyü İncele</span>
               <ArrowRight className="h-4 w-4 ml-1" />
-            </button>
-
-            <button
-              type="button"
-              onClick={handleReplay}
-              className="w-full py-2.5 sm:py-3 px-4 rounded-2xl bg-transparent hover:bg-[#17140F]/5 text-[#17140F]/70 hover:text-[#17140F] border border-[#17140F]/15 font-heading font-bold text-[11px] sm:text-xs tracking-wider uppercase flex items-center justify-center gap-2 transition-all cursor-pointer"
-            >
-              <RotateCcw className="h-3.5 w-3.5 text-[#B98A4A]" />
-              <span>Açılışı Tekrar Gör</span>
             </button>
           </div>
         </div>
