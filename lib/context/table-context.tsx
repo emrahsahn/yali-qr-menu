@@ -86,7 +86,7 @@ export function TableProvider({
   const reloadMenu = useCallback(async () => {
     try {
       const [prodRes, catRes] = await Promise.all([
-        fetch("/api/products", { cache: "no-store" }),
+        fetch("/api/products?include_inactive=true", { cache: "no-store" }),
         fetch("/api/categories", { cache: "no-store" })
       ]);
 
@@ -96,13 +96,31 @@ export function TableProvider({
 
         if (prodData.products && Array.isArray(prodData.products)) {
           setProducts(prodData.products);
+          if (typeof window !== "undefined") {
+            try {
+              localStorage.setItem("yali_live_products", JSON.stringify(prodData.products));
+            } catch {}
+          }
         }
         if (catData.categories && Array.isArray(catData.categories)) {
           setCategories(catData.categories);
+          if (typeof window !== "undefined") {
+            try {
+              localStorage.setItem("yali_live_categories", JSON.stringify(catData.categories));
+            } catch {}
+          }
         }
       }
     } catch (e) {
       console.warn("Notice: Live menu sync fetch error, using local state:", e);
+      if (typeof window !== "undefined") {
+        try {
+          const cachedProd = localStorage.getItem("yali_live_products");
+          const cachedCat = localStorage.getItem("yali_live_categories");
+          if (cachedProd) setProducts(JSON.parse(cachedProd));
+          if (cachedCat) setCategories(JSON.parse(cachedCat));
+        } catch {}
+      }
     } finally {
       setIsLoading(false);
     }

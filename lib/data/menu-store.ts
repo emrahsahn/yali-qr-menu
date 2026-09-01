@@ -1,6 +1,7 @@
 import fs from "fs"
 import path from "path"
 import { Category, Product } from "@/lib/types/database"
+import { createClient } from "@/lib/supabase/server"
 
 interface MenuStoreData {
   categories: Category[];
@@ -15,7 +16,7 @@ declare global {
   var __yaliMenuData: MenuStoreData | undefined;
 }
 
-function loadInitialData(): MenuStoreData {
+function getLocalFileDefaults(): MenuStoreData {
   try {
     if (fs.existsSync(MENU_FILE_PATH)) {
       const fileContent = fs.readFileSync(MENU_FILE_PATH, "utf-8")
@@ -25,57 +26,135 @@ function loadInitialData(): MenuStoreData {
       }
     }
   } catch (error) {
-    console.warn("Could not read menu.json from disk, using defaults:", error)
+    console.warn("Could not read menu.json from disk, using fallback:", error)
   }
 
-  // Fallback defaults
   return {
     categories: [],
     products: []
   }
 }
 
-export function getMenuStore(): MenuStoreData {
+// Check if Upstash KV or Vercel KV is configured via environment variables
+function getKvConfig(): { url: string; token: string } | null {
+  const url = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL
+  const token = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN
+  if (url && token) {
+    return { url, token }
+  }
+  return null
+}
+
+export async function getMenuStore(): Promise<MenuStoreData> {
+  const kv = getKvConfig()
+
+  // 1. Try Upstash / Vercel KV if configured
+  if (kv) {
+    try {
+      const res = await fetch(`${kv.url}/get/yali_menu_data_v1`, {
+        headers: { Authorization: `Bearer ${kv.token}` },
+        cache: "no-store"
+      })
+      if (res.ok) {
+        const json = await res.json()
+        if (json.result) {
+          const parsed = typeof json.result === "string" ? JSON.parse(json.result) : json.result
+          if (parsed && Array.isArray(parsed.categories) && Array.isArray(parsed.products)) {
+            globalThis.__yaliMenuData = parsed
+            return parsed
+          }
+        }
+      }
+    } catch (e) {
+      console.warn("KV fetch error, falling back to memory/file:", e)
+    }
+  }
+
+  // 2. Try Supabase if configured
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const isSupabaseConfigured = supabaseUrl && supabaseUrl !== "your-supabase-url"
+  if (isSupabaseConfigured) {
+    try {
+      const supabase = await createClient()
+      if (supabase) {
+        const [catRes, prodRes] = await Promise.all([
+          supabase.from("categories").select("*").order("sira", { ascending: true }),
+          supabase.from("products").select("*").order("created_at", { ascending: false })
+        ])
+
+        if (catRes.data && prodRes.data && catRes.data.length > 0) {
+          const store: MenuStoreData = {
+            categories: catRes.data as Category[],
+            products: prodRes.data as Product[]
+          }
+          globalThis.__yaliMenuData = store
+          return store
+        }
+      }
+    } catch (e) {
+      console.warn("Supabase fetch error, falling back to memory/file:", e)
+    }
+  }
+
+  // 3. In-memory / Local file system fallback
   if (!globalThis.__yaliMenuData) {
-    globalThis.__yaliMenuData = loadInitialData()
+    globalThis.__yaliMenuData = getLocalFileDefaults()
   }
   return globalThis.__yaliMenuData
 }
 
-export function persistMenuStore(data: MenuStoreData): boolean {
+export async function persistMenuStore(data: MenuStoreData): Promise<boolean> {
   globalThis.__yaliMenuData = data
+
+  const kv = getKvConfig()
+  // 1. Save to Upstash / Vercel KV if available
+  if (kv) {
+    try {
+      await fetch(`${kv.url}/set/yali_menu_data_v1`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${kv.token}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(JSON.stringify(data))
+      })
+    } catch (e) {
+      console.warn("KV save error:", e)
+    }
+  }
+
+  // 2. Save to local disk (if file system is writable)
   try {
     const dir = path.dirname(MENU_FILE_PATH)
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true })
     }
     fs.writeFileSync(MENU_FILE_PATH, JSON.stringify(data, null, 2), "utf-8")
-    return true
   } catch (error) {
-    console.warn("Notice: File write skipped or failed (common in serverless/Vercel read-only runtime):", error)
-    return true // In-memory state remains updated
+    // Expected on serverless / read-only filesystem
   }
+
+  return true
 }
 
-export function getProducts(includeInactive = false): Product[] {
-  const store = getMenuStore()
+export async function getProducts(includeInactive = true): Promise<Product[]> {
+  const store = await getMenuStore()
   if (includeInactive) {
     return store.products
   }
   return store.products.filter((p) => p.aktif !== false)
 }
 
-export function getCategories(): Category[] {
-  const store = getMenuStore()
-  return store.categories.sort((a, b) => a.sira - b.sira)
+export async function getCategories(): Promise<Category[]> {
+  const store = await getMenuStore()
+  return [...store.categories].sort((a, b) => a.sira - b.sira)
 }
 
-export function saveProduct(productData: Partial<Product>): Product {
-  const store = getMenuStore()
+export async function saveProduct(productData: Partial<Product>): Promise<Product> {
+  const store = await getMenuStore()
   let product: Product
 
   if (productData.id) {
-    // Update existing
     const index = store.products.findIndex((p) => p.id === productData.id)
     if (index !== -1) {
       product = {
@@ -102,7 +181,6 @@ export function saveProduct(productData: Partial<Product>): Product {
       store.products.push(product)
     }
   } else {
-    // Create new
     product = {
       id: "prod-" + Date.now() + "-" + Math.random().toString(36).substring(2, 7),
       kategori_id: productData.kategori_id || store.categories[0]?.id || "cat-1",
@@ -119,33 +197,70 @@ export function saveProduct(productData: Partial<Product>): Product {
     store.products.push(product)
   }
 
-  persistMenuStore(store)
+  // Also sync to Supabase if configured
+  try {
+    const supabase = await createClient()
+    if (supabase) {
+      await supabase.from("products").upsert({
+        id: product.id,
+        kategori_id: product.kategori_id,
+        ad_tr: product.ad_tr,
+        ad_en: product.ad_en,
+        aciklama_tr: product.aciklama_tr,
+        aciklama_en: product.aciklama_en,
+        fiyat: product.fiyat,
+        gorsel_url: product.gorsel_url,
+        ozellikler: product.ozellikler,
+        aktif: product.aktif
+      })
+    }
+  } catch {}
+
+  await persistMenuStore(store)
   return product
 }
 
-export function toggleProductActive(productId: string): Product | null {
-  const store = getMenuStore()
+export async function toggleProductActive(productId: string): Promise<Product | null> {
+  const store = await getMenuStore()
   const product = store.products.find((p) => p.id === productId)
   if (!product) return null
 
   product.aktif = !product.aktif
-  persistMenuStore(store)
+
+  // Also sync to Supabase if configured
+  try {
+    const supabase = await createClient()
+    if (supabase) {
+      await supabase.from("products").update({ aktif: product.aktif }).eq("id", productId)
+    }
+  } catch {}
+
+  await persistMenuStore(store)
   return product
 }
 
-export function deleteProduct(productId: string): boolean {
-  const store = getMenuStore()
+export async function deleteProduct(productId: string): Promise<boolean> {
+  const store = await getMenuStore()
   const initialLength = store.products.length
   store.products = store.products.filter((p) => p.id !== productId)
+
   if (store.products.length !== initialLength) {
-    persistMenuStore(store)
+    // Also sync to Supabase if configured
+    try {
+      const supabase = await createClient()
+      if (supabase) {
+        await supabase.from("products").delete().eq("id", productId)
+      }
+    } catch {}
+
+    await persistMenuStore(store)
     return true
   }
   return false
 }
 
-export function saveCategory(categoryData: Partial<Category>): Category {
-  const store = getMenuStore()
+export async function saveCategory(categoryData: Partial<Category>): Promise<Category> {
+  const store = await getMenuStore()
   let category: Category
 
   if (categoryData.id) {
@@ -177,18 +292,41 @@ export function saveCategory(categoryData: Partial<Category>): Category {
     store.categories.push(category)
   }
 
-  persistMenuStore(store)
+  // Also sync to Supabase if configured
+  try {
+    const supabase = await createClient()
+    if (supabase) {
+      await supabase.from("categories").upsert({
+        id: category.id,
+        ad_tr: category.ad_tr,
+        ad_en: category.ad_en,
+        sira: category.sira
+      })
+    }
+  } catch {}
+
+  await persistMenuStore(store)
   return category
 }
 
-export function deleteCategory(categoryId: string): boolean {
-  const store = getMenuStore()
+export async function deleteCategory(categoryId: string): Promise<boolean> {
+  const store = await getMenuStore()
   const initialLength = store.categories.length
   store.categories = store.categories.filter((c) => c.id !== categoryId)
+
   if (store.categories.length !== initialLength) {
-    // Also remove products under this category
     store.products = store.products.filter((p) => p.kategori_id !== categoryId)
-    persistMenuStore(store)
+
+    // Also sync to Supabase if configured
+    try {
+      const supabase = await createClient()
+      if (supabase) {
+        await supabase.from("categories").delete().eq("id", categoryId)
+        await supabase.from("products").delete().eq("kategori_id", categoryId)
+      }
+    } catch {}
+
+    await persistMenuStore(store)
     return true
   }
   return false

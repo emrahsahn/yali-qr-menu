@@ -9,9 +9,9 @@ export const metadata = {
   description: "Yalı Restaurant seçkin lezzetler, başlangıçlar, ana yemekler ve tatlılar dijital menüsü."
 }
 
-export default function MenuPage() {
-  const categories = getCategories()
-  const products = getProducts(true) // Load all to handle status badges gracefully
+export default async function MenuPage() {
+  const categories = await getCategories()
+  const products = await getProducts(true)
 
   return <QrMenuView initialCategories={categories} initialProducts={products} />
 }

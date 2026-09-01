@@ -8,12 +8,12 @@ import {
 // GET: Tüm kategorileri sıralı getir
 export async function GET() {
   try {
-    const categories = getCategories()
+    const categories = await getCategories()
     return NextResponse.json(
       { categories },
       {
         headers: {
-          "Cache-Control": "no-store, max-age=0"
+          "Cache-Control": "no-store, max-age=0, must-revalidate"
         }
       }
     )
@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Türkçe kategori adı gereklidir." }, { status: 400 })
     }
 
-    const newCategory = saveCategory({
+    const newCategory = await saveCategory({
       ad_tr: String(ad_tr).trim(),
       ad_en: ad_en ? String(ad_en).trim() : String(ad_tr).trim(),
       sira: sira !== undefined ? Number(sira) : 99
@@ -56,7 +56,7 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: "Kategori ID gereklidir." }, { status: 400 })
     }
 
-    const updated = saveCategory({
+    const updated = await saveCategory({
       id,
       ...updates
     })
@@ -85,7 +85,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: "Kategori ID gereklidir." }, { status: 400 })
     }
 
-    const deleted = deleteCategory(id)
+    const deleted = await deleteCategory(id)
     if (!deleted) {
       return NextResponse.json({ error: "Kategori bulunamadı." }, { status: 404 })
     }
