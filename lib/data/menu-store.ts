@@ -37,8 +37,8 @@ function getLocalFileDefaults(): MenuStoreData {
 
 // Check if Upstash KV or Vercel KV is configured via environment variables
 function getKvConfig(): { url: string; token: string } | null {
-  const url = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL
-  const token = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN
+  const url = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL || process.env.STORAGE_REST_API_URL || process.env.STORAGE_URL
+  const token = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN || process.env.STORAGE_REST_API_TOKEN || process.env.STORAGE_TOKEN
   if (url && token) {
     return { url, token }
   }
@@ -64,6 +64,12 @@ export async function getMenuStore(): Promise<MenuStoreData> {
             return parsed
           }
         }
+      }
+      // If KV is connected but empty, initialize it with local default menu data
+      const defaultData = getLocalFileDefaults()
+      if (defaultData.products.length > 0) {
+        await persistMenuStore(defaultData)
+        return defaultData
       }
     } catch (e) {
       console.warn("KV fetch error, falling back to memory/file:", e)
@@ -110,6 +116,7 @@ export async function persistMenuStore(data: MenuStoreData): Promise<boolean> {
   // 1. Save to Upstash / Vercel KV if available
   if (kv) {
     try {
+      // Send both REST endpoint formats for compatibility
       await fetch(`${kv.url}/set/yali_menu_data_v1`, {
         method: "POST",
         headers: {
