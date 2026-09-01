@@ -10,7 +10,7 @@ import { LoadingSkeleton } from "@/components/ui/loading-skeleton"
 import { YaliPreloader } from "@/components/ui/yali-preloader"
 import { RegisterServiceWorker } from "@/components/pwa/register-sw"
 import { InstallPrompt } from "@/components/pwa/install-prompt"
-import { Sparkles, Play, Search, X, UtensilsCrossed } from "lucide-react"
+import { Sparkles, Search, X, UtensilsCrossed } from "lucide-react"
 
 /*
  * DEAKTİVE EDİLEN BİLEŞENLER (Gerektiğinde açılmak üzere korundu):
@@ -25,7 +25,6 @@ function MenuMainContent() {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [replayPreloader, setReplayPreloader] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   /*
@@ -82,10 +81,8 @@ function MenuMainContent() {
 
       {/* Yalı 3D Leaf Opening Entrance Preloader Animasyonu */}
       <YaliPreloader
-        forcePlay={replayPreloader}
         tableName="Yalı Restaurant"
         tableNo={1}
-        onComplete={() => setReplayPreloader(false)}
       />
 
       <div className="flex-1 flex flex-col w-full max-w-lg sm:max-w-xl md:max-w-2xl lg:max-w-3xl mx-auto pb-24 min-h-screen relative bg-gradient-to-br from-[#B98A4A]/5 via-transparent to-[#D8C4A0]/5">
@@ -231,17 +228,7 @@ function MenuMainContent() {
           )}
         </div>
 
-        {/* Preloader Replay Helper at Bottom */}
-        <div className="mt-10 mb-4 flex justify-center px-4">
-          <button
-            type="button"
-            onClick={() => setReplayPreloader(true)}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-secondary/80 hover:bg-secondary text-[11px] sm:text-xs font-bold text-foreground/60 hover:text-foreground border border-border cursor-pointer transition-all shadow-xs"
-          >
-            <Play className="h-3 w-3 text-primary" />
-            <span>Açılış Animasyonunu Tekrar Oynat</span>
-          </button>
-        </div>
+
 
         {/* Product Detail Dialog (Photo, Allergens, Info) */}
         <ProductDetailDialog
