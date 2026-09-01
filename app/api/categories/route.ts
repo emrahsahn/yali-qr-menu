@@ -1,0 +1,98 @@
+import { NextRequest, NextResponse } from "next/server"
+import {
+  getCategories,
+  saveCategory,
+  deleteCategory
+} from "@/lib/data/menu-store"
+
+// GET: Tüm kategorileri sıralı getir
+export async function GET() {
+  try {
+    const categories = getCategories()
+    return NextResponse.json(
+      { categories },
+      {
+        headers: {
+          "Cache-Control": "no-store, max-age=0"
+        }
+      }
+    )
+  } catch (error) {
+    console.error("Categories GET error:", error)
+    return NextResponse.json({ categories: [] }, { status: 500 })
+  }
+}
+
+// POST: Yeni kategori ekle
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json()
+    const { ad_tr, ad_en, sira } = body
+
+    if (!ad_tr) {
+      return NextResponse.json({ error: "Türkçe kategori adı gereklidir." }, { status: 400 })
+    }
+
+    const newCategory = saveCategory({
+      ad_tr: String(ad_tr).trim(),
+      ad_en: ad_en ? String(ad_en).trim() : String(ad_tr).trim(),
+      sira: sira !== undefined ? Number(sira) : 99
+    })
+
+    return NextResponse.json({ success: true, category: newCategory })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Kategori eklenirken hata oluştu."
+    return NextResponse.json({ error: message }, { status: 500 })
+  }
+}
+
+// PUT: Kategori güncelle
+export async function PUT(request: NextRequest) {
+  try {
+    const body = await request.json()
+    const { id, ...updates } = body
+
+    if (!id) {
+      return NextResponse.json({ error: "Kategori ID gereklidir." }, { status: 400 })
+    }
+
+    const updated = saveCategory({
+      id,
+      ...updates
+    })
+
+    return NextResponse.json({ success: true, category: updated })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Kategori güncellenirken hata oluştu."
+    return NextResponse.json({ error: message }, { status: 500 })
+  }
+}
+
+// DELETE: Kategori sil
+export async function DELETE(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url)
+    let id = searchParams.get("id")
+
+    if (!id) {
+      try {
+        const body = await request.json()
+        id = body.id
+      } catch {}
+    }
+
+    if (!id) {
+      return NextResponse.json({ error: "Kategori ID gereklidir." }, { status: 400 })
+    }
+
+    const deleted = deleteCategory(id)
+    if (!deleted) {
+      return NextResponse.json({ error: "Kategori bulunamadı." }, { status: 404 })
+    }
+
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Kategori silinirken hata oluştu."
+    return NextResponse.json({ error: message }, { status: 500 })
+  }
+}
