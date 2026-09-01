@@ -1,0 +1,40 @@
+{
+  "name": "Yalı Restaurant & Lounge",
+  "short_name": "Yalı",
+  "description": "Yalı QR menü — Restaurant, Kafe, Club ve Deniz Ürünleri. Menüyü çevrimdışı bile görüntüleyin.",
+  "id": "/",
+  "start_url": "/restaurant",
+  "scope": "/restaurant/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#FDFCFA",
+  "theme_color": "#B98A4A",
+  "lang": "tr",
+  "categories": ["food", "lifestyle"],
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-maskable-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
