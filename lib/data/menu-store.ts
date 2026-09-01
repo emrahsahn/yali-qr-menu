@@ -1,9 +1,10 @@
 import fs from "fs"
 import path from "path"
 import { Category, Product } from "@/lib/types/database"
+import { Redis } from "@upstash/redis"
 import { createClient } from "@/lib/supabase/server"
 
-interface MenuStoreData {
+export interface MenuStoreData {
   categories: Category[];
   products: Product[];
 }
@@ -35,48 +36,57 @@ function getLocalFileDefaults(): MenuStoreData {
   }
 }
 
-// Check if Upstash KV or Vercel KV is configured via environment variables
-function getKvConfig(): { url: string; token: string } | null {
-  const url = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL || process.env.STORAGE_REST_API_URL || process.env.STORAGE_URL
-  const token = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN || process.env.STORAGE_REST_API_TOKEN || process.env.STORAGE_TOKEN
+// Initialize Upstash Redis client with any Vercel/Upstash environment variable names
+function getRedisClient(): Redis | null {
+  const url =
+    process.env.KV_REST_API_URL ||
+    process.env.UPSTASH_REDIS_REST_URL ||
+    process.env.STORAGE_REST_API_URL ||
+    process.env.STORAGE_URL ||
+    process.env.KV_URL
+  const token =
+    process.env.KV_REST_API_TOKEN ||
+    process.env.UPSTASH_REDIS_REST_TOKEN ||
+    process.env.STORAGE_REST_API_TOKEN ||
+    process.env.STORAGE_TOKEN
+  
   if (url && token) {
-    return { url, token }
+    try {
+      return new Redis({ url, token })
+    } catch (e) {
+      console.warn("Notice: Upstash Redis client initialization skipped:", e)
+    }
   }
   return null
 }
 
 export async function getMenuStore(): Promise<MenuStoreData> {
-  const kv = getKvConfig()
+  const redis = getRedisClient()
 
-  // 1. Try Upstash / Vercel KV if configured
-  if (kv) {
+  // 1. Upstash Redis (Vercel KV)
+  if (redis) {
     try {
-      const res = await fetch(`${kv.url}/get/yali_menu_data_v1`, {
-        headers: { Authorization: `Bearer ${kv.token}` },
-        cache: "no-store"
-      })
-      if (res.ok) {
-        const json = await res.json()
-        if (json.result) {
-          const parsed = typeof json.result === "string" ? JSON.parse(json.result) : json.result
-          if (parsed && Array.isArray(parsed.categories) && Array.isArray(parsed.products)) {
-            globalThis.__yaliMenuData = parsed
-            return parsed
-          }
+      const data = await redis.get<MenuStoreData | string>("yali_menu_data_v1")
+      if (data) {
+        const parsed = typeof data === "string" ? JSON.parse(data) : data
+        if (parsed && Array.isArray(parsed.categories) && Array.isArray(parsed.products) && parsed.products.length > 0) {
+          globalThis.__yaliMenuData = parsed
+          return parsed
         }
       }
-      // If KV is connected but empty, initialize it with local default menu data
+      // If Redis is fresh and empty, auto-seed with local initial menu data
       const defaultData = getLocalFileDefaults()
       if (defaultData.products.length > 0) {
-        await persistMenuStore(defaultData)
+        await redis.set("yali_menu_data_v1", defaultData)
+        globalThis.__yaliMenuData = defaultData
         return defaultData
       }
-    } catch (e) {
-      console.warn("KV fetch error, falling back to memory/file:", e)
+    } catch (err) {
+      console.warn("Notice: Upstash Redis get error, using fallback:", err)
     }
   }
 
-  // 2. Try Supabase if configured
+  // 2. Supabase if configured
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const isSupabaseConfigured = supabaseUrl && supabaseUrl !== "your-supabase-url"
   if (isSupabaseConfigured) {
@@ -102,7 +112,7 @@ export async function getMenuStore(): Promise<MenuStoreData> {
     }
   }
 
-  // 3. In-memory / Local file system fallback
+  // 3. Local file / In-memory fallback
   if (!globalThis.__yaliMenuData) {
     globalThis.__yaliMenuData = getLocalFileDefaults()
   }
@@ -112,21 +122,13 @@ export async function getMenuStore(): Promise<MenuStoreData> {
 export async function persistMenuStore(data: MenuStoreData): Promise<boolean> {
   globalThis.__yaliMenuData = data
 
-  const kv = getKvConfig()
-  // 1. Save to Upstash / Vercel KV if available
-  if (kv) {
+  // 1. Save to Upstash Redis
+  const redis = getRedisClient()
+  if (redis) {
     try {
-      // Send both REST endpoint formats for compatibility
-      await fetch(`${kv.url}/set/yali_menu_data_v1`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${kv.token}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(JSON.stringify(data))
-      })
-    } catch (e) {
-      console.warn("KV save error:", e)
+      await redis.set("yali_menu_data_v1", data)
+    } catch (err) {
+      console.warn("Notice: Upstash Redis set error:", err)
     }
   }
 
