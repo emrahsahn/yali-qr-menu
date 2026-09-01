@@ -11,9 +11,9 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const categoryId = searchParams.get("kategori_id")
-    const includeInactive = searchParams.get("include_inactive") === "true"
+    const includeInactive = searchParams.get("include_inactive") !== "false" // Default to true so status badges show
 
-    let products = getProducts(includeInactive)
+    let products = await getProducts(includeInactive)
 
     if (categoryId && categoryId !== "all") {
       products = products.filter((p) => p.kategori_id === categoryId)
@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
       { products },
       {
         headers: {
-          "Cache-Control": "no-store, max-age=0"
+          "Cache-Control": "no-store, max-age=0, must-revalidate"
         }
       }
     )
@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const newProduct = saveProduct({
+    const newProduct = await saveProduct({
       kategori_id,
       ad_tr: String(ad_tr).trim(),
       ad_en: ad_en ? String(ad_en).trim() : String(ad_tr).trim(),
@@ -85,7 +85,7 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: "Ürün ID gereklidir." }, { status: 400 })
     }
 
-    const updated = saveProduct({
+    const updated = await saveProduct({
       id,
       ...updates
     })
@@ -107,7 +107,7 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: "Ürün ID gereklidir." }, { status: 400 })
     }
 
-    const updated = toggleProductActive(id)
+    const updated = await toggleProductActive(id)
     if (!updated) {
       return NextResponse.json({ error: "Ürün bulunamadı." }, { status: 404 })
     }
@@ -136,7 +136,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: "Ürün ID gereklidir." }, { status: 400 })
     }
 
-    const deleted = deleteProduct(id)
+    const deleted = await deleteProduct(id)
     if (!deleted) {
       return NextResponse.json({ error: "Ürün bulunamadı." }, { status: 404 })
     }

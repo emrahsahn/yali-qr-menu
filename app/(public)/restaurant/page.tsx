@@ -9,9 +9,9 @@ export const metadata = {
   description: "Yalı Restaurant seçkin lezzetler ve dijital menü."
 }
 
-export default function RestaurantPage() {
-  const categories = getCategories()
-  const products = getProducts(true)
+export default async function RestaurantPage() {
+  const categories = await getCategories()
+  const products = await getProducts(true)
 
   return <QrMenuView initialCategories={categories} initialProducts={products} />
 }
