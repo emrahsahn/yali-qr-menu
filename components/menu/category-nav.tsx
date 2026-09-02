@@ -4,7 +4,8 @@ import React from "react"
 import { useTable } from "@/lib/context/table-context"
 import { Button } from "@/components/ui/button"
 import { useTheme } from "next-themes"
-import { Globe, Sun, Moon, UtensilsCrossed, Search } from "lucide-react"
+import { Globe, Sun, Moon, Search } from "lucide-react"
+import { YaliLogo } from "@/components/ui/yali-logo"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -36,8 +37,8 @@ export function CategoryNav({
     <div className="sticky top-0 z-30 w-full flex flex-col glass-panel border-b border-border shadow-md bg-card/95 backdrop-blur-md">
       {/* Top utility row */}
       <div className="flex items-center justify-between px-3.5 sm:px-4 py-2 sm:py-2.5 border-b border-border">
-        <div className="flex items-center gap-2">
-          <UtensilsCrossed className="h-4.5 w-4.5 sm:h-5 sm:w-5 text-primary" />
+        <div className="flex items-center gap-2.5">
+          <YaliLogo size="xs" shadow />
           <span className="font-heading font-black text-base sm:text-lg tracking-wider text-primary">YALI</span>
         </div>
         
