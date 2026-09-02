@@ -5,7 +5,8 @@ import { useTheme } from "next-themes"
 import { useAuth } from "@/lib/context/auth-context"
 import { useLanguage } from "@/lib/context/language-context"
 import { Button } from "@/components/ui/button"
-import { Globe, Sun, Moon, Menu, ExternalLink, LogOut, Utensils } from "lucide-react"
+import { Globe, Sun, Moon, Menu, ExternalLink, LogOut } from "lucide-react"
+import { YaliLogo } from "@/components/ui/yali-logo"
 import Link from "next/link"
 import {
   DropdownMenu,
@@ -32,8 +33,8 @@ export function DashboardHeader({ onOpenSidebar }: { onOpenSidebar?: () => void 
         </button>
 
         <div className="flex items-center gap-2.5">
-          <div className="hidden sm:flex p-2 rounded-xl bg-primary/10 border border-primary/20 text-primary">
-            <Utensils className="h-4 w-4" />
+          <div className="hidden sm:flex">
+            <YaliLogo size="xs" shadow />
           </div>
           <div className="flex flex-col text-left">
             <div className="flex items-center gap-2">

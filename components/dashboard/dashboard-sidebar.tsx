@@ -10,9 +10,9 @@ import {
   LogOut,
   Shield,
   X,
-  ExternalLink,
-  Utensils
+  ExternalLink
 } from "lucide-react"
+import { YaliLogo } from "@/components/ui/yali-logo"
 
 export function DashboardSidebar({ isOpen, onClose }: { isOpen?: boolean; onClose?: () => void }) {
   const { user, logout } = useAuth()
@@ -25,7 +25,7 @@ export function DashboardSidebar({ isOpen, onClose }: { isOpen?: boolean; onClos
       {/* Mobile Backdrop */}
       {isOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/40 md:hidden backdrop-blur-sm transition-opacity duration-300"
+          className="fixed inset-0 z-40 bg-black/60 md:hidden backdrop-blur-sm transition-opacity duration-300"
           onClick={onClose}
         />
       )}
@@ -37,9 +37,7 @@ export function DashboardSidebar({ isOpen, onClose }: { isOpen?: boolean; onClos
         {/* Branding */}
         <div className="h-16 flex items-center justify-between px-6 border-b border-border">
           <Link href="/panel" className="flex items-center gap-3" onClick={onClose}>
-            <div className="bg-primary/10 p-2 rounded-xl border border-primary/20 text-primary">
-              <Utensils className="h-5 w-5" />
-            </div>
+            <YaliLogo size="xs" shadow />
             <div className="flex flex-col text-left">
               <span className="font-heading font-black text-base tracking-wider text-foreground">
                 YALI RESTAURANT
