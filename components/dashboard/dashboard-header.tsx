@@ -2,10 +2,11 @@
 
 import React from "react"
 import { useTheme } from "next-themes"
+import { useAuth } from "@/lib/context/auth-context"
 import { useLanguage } from "@/lib/context/language-context"
-import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Globe, Sun, Moon, Menu } from "lucide-react"
+import { Globe, Sun, Moon, Menu, ExternalLink, LogOut, Utensils } from "lucide-react"
+import Link from "next/link"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,83 +16,60 @@ import {
 
 export function DashboardHeader({ onOpenSidebar }: { onOpenSidebar?: () => void }) {
   const { theme, setTheme } = useTheme()
+  const { logout } = useAuth()
   const { setLang } = useLanguage()
-  const pathname = usePathname()
-
-  // Generate dynamic breadcrumb segments
-  const getBreadcrumbs = () => {
-    if (pathname === "/admin") {
-      return [{ label: "Genel Yönetim", active: true }]
-    }
-    if (pathname === "/panel/restaurant") {
-      return [
-        { label: "Restaurant", active: false },
-        { label: "Canlı Siparişler & POS", active: true }
-      ]
-    }
-    if (pathname === "/panel/restaurant/menu") {
-      return [
-        { label: "Restaurant", active: false },
-        { label: "Menü & Ürünler", active: true }
-      ]
-    }
-    if (pathname === "/panel/restaurant/qr") {
-      return [
-        { label: "Restaurant", active: false },
-        { label: "Masa & QR Kodları", active: true }
-      ]
-    }
-    if (pathname.startsWith("/panel/cafe")) {
-      return [{ label: "Konteynır Cafe", active: true }]
-    }
-    if (pathname.startsWith("/panel/club")) {
-      return [{ label: "Club & Bar", active: true }]
-    }
-    if (pathname.startsWith("/panel/seafood")) {
-      return [{ label: "Yalı Deniz Ürünleri", active: true }]
-    }
-    return [{ label: "Yönetim", active: true }]
-  }
-
-  const breadcrumbs = getBreadcrumbs()
 
   return (
-    <header className="h-16 border-b border-border bg-card/50 backdrop-blur-md flex items-center justify-between px-4 md:px-8 sticky top-0 z-20">
-      <div className="flex items-center gap-3">
+    <header className="h-16 border-b border-border bg-card/90 backdrop-blur-md flex items-center justify-between px-3 sm:px-6 sticky top-0 z-30">
+      <div className="flex items-center gap-2 sm:gap-3">
         {/* Mobile Menu Trigger */}
         <button
           onClick={onOpenSidebar}
-          className="md:hidden p-2 rounded-xl hover:bg-muted text-foreground/80 hover:text-foreground cursor-pointer"
+          className="md:hidden p-2 rounded-xl bg-secondary/80 hover:bg-secondary text-foreground/80 hover:text-foreground border border-border cursor-pointer transition-all"
+          title="Menüyü Aç"
         >
           <Menu className="h-5 w-5" />
         </button>
 
-        <div className="flex items-center gap-2 text-xs">
-          <span className="uppercase font-extrabold tracking-wider text-foreground/45">
-            Yalı Paneli
-          </span>
-          {breadcrumbs.map((b, idx) => (
-            <React.Fragment key={idx}>
-              <span className="text-foreground/25">/</span>
-              <span className={b.active ? "font-bold text-foreground" : "text-foreground/60 font-medium"}>
-                {b.label}
+        <div className="flex items-center gap-2.5">
+          <div className="hidden sm:flex p-2 rounded-xl bg-primary/10 border border-primary/20 text-primary">
+            <Utensils className="h-4 w-4" />
+          </div>
+          <div className="flex flex-col text-left">
+            <div className="flex items-center gap-2">
+              <span className="font-heading font-black text-sm sm:text-base tracking-wide text-foreground">
+                YALI RESTAURANT
               </span>
-            </React.Fragment>
-          ))}
+              <span className="px-1.5 py-0.5 rounded-md bg-primary/15 text-primary text-[9px] font-black uppercase tracking-wider">
+                GÖREVLİ
+              </span>
+            </div>
+          </div>
         </div>
       </div>
 
-      <div className="flex items-center gap-3">
+      {/* Right Utility Buttons */}
+      <div className="flex items-center gap-1.5 sm:gap-2">
+        {/* Customer Menu Preview Link */}
+        <Link
+          href="/menu"
+          target="_blank"
+          className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-secondary hover:bg-secondary/80 border border-border text-xs font-bold text-foreground transition-all"
+        >
+          <ExternalLink className="h-3.5 w-3.5 text-primary" />
+          <span>Menüyü Önizle</span>
+        </Link>
+
         {/* Language Selector */}
         <DropdownMenu>
-          <DropdownMenuTrigger render={<Button variant="ghost" size="icon" className="h-9 w-9 rounded-full hover:bg-primary/10 cursor-pointer" />}>
-            <Globe className="h-4 w-4" />
+          <DropdownMenuTrigger render={<Button variant="ghost" size="icon" className="h-8.5 w-8.5 rounded-xl border border-border hover:bg-primary/10 cursor-pointer" />}>
+            <Globe className="h-3.5 w-3.5 text-foreground/80" />
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="bg-card border border-border shadow-lg">
-            <DropdownMenuItem onClick={() => setLang('tr')} className="cursor-pointer font-medium text-xs">
+          <DropdownMenuContent align="end" className="bg-card text-foreground border border-border shadow-xl rounded-2xl">
+            <DropdownMenuItem onClick={() => setLang('tr')} className="cursor-pointer font-semibold text-xs">
               🇹🇷 Türkçe
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setLang('en')} className="cursor-pointer font-medium text-xs">
+            <DropdownMenuItem onClick={() => setLang('en')} className="cursor-pointer font-semibold text-xs">
               🇬🇧 English
             </DropdownMenuItem>
           </DropdownMenuContent>
@@ -102,12 +80,23 @@ export function DashboardHeader({ onOpenSidebar }: { onOpenSidebar?: () => void 
           variant="ghost"
           size="icon"
           onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-          className="h-9 w-9 rounded-full hover:bg-primary/10 cursor-pointer"
+          className="h-8.5 w-8.5 rounded-xl border border-border hover:bg-primary/10 cursor-pointer"
         >
-          <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-          <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-          <span className="sr-only">Toggle theme</span>
+          <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0 text-amber-500" />
+          <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100 text-amber-300" />
+          <span className="sr-only">Tema Değiştir</span>
         </Button>
+
+        {/* Logout */}
+        <button
+          type="button"
+          onClick={logout}
+          className="flex items-center gap-1 px-2.5 sm:px-3 py-1.5 rounded-xl bg-destructive/10 hover:bg-destructive/20 border border-destructive/20 text-destructive text-xs font-bold transition-all cursor-pointer ml-1"
+          title="Çıkış Yap"
+        >
+          <LogOut className="h-3.5 w-3.5" />
+          <span className="hidden sm:inline">Çıkış</span>
+        </button>
       </div>
     </header>
   )

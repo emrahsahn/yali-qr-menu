@@ -198,10 +198,12 @@ export async function saveProduct(productData: Partial<Product>): Promise<Produc
       aciklama_tr: productData.aciklama_tr || "",
       aciklama_en: productData.aciklama_en || "",
       fiyat: Number(productData.fiyat || 0),
+      porsiyonlar: productData.porsiyonlar,
       gorsel_url: productData.gorsel_url || "",
       ozellikler: productData.ozellikler || {},
       aktif: productData.aktif !== false,
-      created_at: new Date().toISOString()
+      created_at: new Date().toISOString(),
+      ...productData
     }
     store.products.push(product)
   }

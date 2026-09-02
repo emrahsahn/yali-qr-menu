@@ -323,99 +323,56 @@ export default function StaffPanelPage() {
         </div>
       )}
 
-      {/* Top Header */}
-      <header className="sticky top-0 z-40 w-full border-b border-border bg-card/90 backdrop-blur-md">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-18 flex items-center justify-between">
-          {/* Logo & Title */}
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-2xl bg-primary/10 border border-primary/20 text-primary">
-              <Utensils className="h-5 w-5" />
-            </div>
-            <div className="flex flex-col">
-              <div className="flex items-center gap-2">
-                <h1 className="font-heading font-black text-lg sm:text-xl tracking-wide text-foreground">
-                  YALI RESTAURANT
-                </h1>
-                <span className="px-2 py-0.5 rounded-md bg-primary/15 text-primary text-[10px] font-black uppercase tracking-wider">
-                  GÖREVLİ PANELİ
-                </span>
-              </div>
-              <p className="text-[11px] text-foreground/50 font-semibold">
-                QR Menü & İçerik Yönetim Sistemi
-              </p>
-            </div>
-          </div>
-
-          {/* Right Actions */}
-          <div className="flex items-center gap-2.5">
-            {/* Live Preview Button */}
-            <Link
-              href="/menu"
-              target="_blank"
-              className="hidden sm:flex items-center gap-1.5 px-4 py-2 rounded-xl bg-secondary hover:bg-secondary/80 border border-border text-xs font-bold text-foreground transition-all"
-            >
-              <ExternalLink className="h-3.5 w-3.5 text-primary" />
-              <span>Menüyü Önizle</span>
-            </Link>
-
-            {/* Theme toggle */}
-            <button
-              type="button"
-              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              className="p-2 rounded-xl bg-secondary hover:bg-secondary/80 border border-border text-foreground/70 hover:text-foreground cursor-pointer transition-all"
-              title="Tema Değiştir"
-            >
-              {theme === "dark" ? <Sun className="h-4 w-4 text-amber-400" /> : <Moon className="h-4 w-4 text-slate-700" />}
-            </button>
-
-            {/* Logout */}
-            <button
-              type="button"
-              onClick={logout}
-              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-destructive/10 hover:bg-destructive/20 border border-destructive/20 text-destructive text-xs font-bold transition-all cursor-pointer"
-              title="Çıkış Yap"
-            >
-              <LogOut className="h-3.5 w-3.5" />
-              <span className="hidden md:inline">Çıkış</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Tab Navigation */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 flex items-center gap-2 pt-1 border-t border-border/50">
-          <button
-            type="button"
-            onClick={() => setActiveTab("menu")}
-            className={`flex items-center gap-2 px-5 py-3 border-b-2 font-bold text-xs sm:text-sm transition-all cursor-pointer ${
-              activeTab === "menu"
-                ? "border-primary text-primary"
-                : "border-transparent text-foreground/60 hover:text-foreground"
-            }`}
-          >
-            <Layers className="h-4 w-4" />
-            <span>Menü & Ürün Yönetimi</span>
-            <span className="px-2 py-0.5 rounded-full bg-secondary text-[10px] text-foreground/70">
-              {products.length}
-            </span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveTab("qr")}
-            className={`flex items-center gap-2 px-5 py-3 border-b-2 font-bold text-xs sm:text-sm transition-all cursor-pointer ${
-              activeTab === "qr"
-                ? "border-primary text-primary"
-                : "border-transparent text-foreground/60 hover:text-foreground"
-            }`}
-          >
-            <QrCode className="h-4 w-4" />
-            <span>QR Kod & Menü Bağlantısı</span>
-          </button>
-        </div>
-      </header>
-
       {/* Main Container */}
-      <main className="max-w-7xl w-full mx-auto px-4 sm:px-6 pt-6 flex-1 flex flex-col">
+      <div className="w-full flex-1 flex flex-col pt-2">
+        
+        {/* Top Tab Navigation & Status Bar */}
+        <div className="w-full border border-border bg-card rounded-2xl p-2 mb-6 flex flex-wrap items-center justify-between gap-3 shadow-xs">
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => setActiveTab("menu")}
+              className={`flex items-center gap-2 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all cursor-pointer ${
+                activeTab === "menu"
+                  ? "bg-primary text-primary-foreground shadow-sm shadow-primary/25"
+                  : "text-foreground/60 hover:text-foreground hover:bg-muted"
+              }`}
+            >
+              <Layers className="h-4 w-4" />
+              <span>Menü & Ürün Yönetimi</span>
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+                activeTab === "menu" ? "bg-white/20 text-white" : "bg-secondary text-foreground/70"
+              }`}>
+                {products.length}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab("qr")}
+              className={`flex items-center gap-2 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all cursor-pointer ${
+                activeTab === "qr"
+                  ? "bg-primary text-primary-foreground shadow-sm shadow-primary/25"
+                  : "text-foreground/60 hover:text-foreground hover:bg-muted"
+              }`}
+            >
+              <QrCode className="h-4 w-4" />
+              <span>QR Kod & Menü Bağlantısı</span>
+            </button>
+          </div>
+
+          {/* Quick Counts */}
+          <div className="hidden sm:flex items-center gap-2 px-2">
+            <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/20">
+              {activeCount} Aktif
+            </span>
+            {outOfStockCount > 0 && (
+              <span className="text-[11px] font-bold text-rose-600 dark:text-rose-400 bg-rose-500/10 px-2.5 py-1 rounded-lg border border-rose-500/20">
+                {outOfStockCount} Tükendi
+              </span>
+            )}
+          </div>
+        </div>
         
         {/* TAB 1: MENU & PRODUCT MANAGEMENT */}
         {activeTab === "menu" && (
@@ -779,7 +736,7 @@ export default function StaffPanelPage() {
             </div>
           </div>
         )}
-      </main>
+      </div>
 
       {/* Product Management Modal */}
       <ProductManagementModal

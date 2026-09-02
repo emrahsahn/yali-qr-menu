@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from "react"
+import React from "react"
 import { Product } from "@/lib/types/database"
 import { useTable } from "@/lib/context/table-context"
 import Image from "next/image"
@@ -11,12 +11,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { AlertTriangle, X } from "lucide-react"
-
-/* 
- * DEAKTİVE EDİLEN İMPORTLAR (Gerektiğinde açılmak üzere korundu):
- * import { Plus, Minus } from "lucide-react"
- */
+import { AlertTriangle, X, Layers } from "lucide-react"
 
 export function ProductDetailDialog({
   product,
@@ -28,23 +23,6 @@ export function ProductDetailDialog({
   onClose: () => void;
 }) {
   const { lang, t } = useTable();
-
-  /*
-   * DEAKTİVE EDİLEN SİPARİŞ STATE'LERİ (İleride kolayca açılabilir):
-   * const { addToCart } = useTable();
-   * const [adet, setAdet] = useState(1);
-   * const [notText, setNotText] = useState("");
-   * const [isAdding, setIsAdding] = useState(false);
-   */
-
-  // Reset inputs each time the dialog opens — adjusting state during render
-  const [openSyncKey, setOpenSyncKey] = useState<string | null>(null);
-  if (isOpen) {
-    const syncKey = `open:${String(isOpen)}`;
-    if (openSyncKey !== syncKey) {
-      setOpenSyncKey(syncKey);
-    }
-  }
 
   if (!product) return null;
 
@@ -64,20 +42,16 @@ export function ProductDetailDialog({
 
   const hasAnyBadges = isVegetarian || isVegan || isSpicy || isCold || hasCaffeine || isChefSpecial || !!prepTime;
 
-  /*
-   * DEAKTİVE EDİLEN SEPETE EKLE FONKSİYONU:
-   * const handleAdd = async () => {
-   *   setIsAdding(true);
-   *   try {
-   *     await addToCart(product.id, adet, notText);
-   *     onClose();
-   *   } catch (e) {
-   *     console.error(e);
-   *   } finally {
-   *     setIsAdding(false);
-   *   }
-   * };
-   */
+  const portions = product.porsiyonlar || [];
+  const hasPortions = portions.length > 0;
+
+  const minPortionPrice = hasPortions
+    ? Math.min(...portions.map(p => Number(p.fiyat) || 0))
+    : Number(product.fiyat);
+
+  const maxPortionPrice = hasPortions
+    ? Math.max(...portions.map(p => Number(p.fiyat) || 0))
+    : Number(product.fiyat);
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -120,6 +94,39 @@ export function ProductDetailDialog({
             <p className="text-xs sm:text-sm text-foreground/80 leading-relaxed font-medium">
               {aciklama}
             </p>
+          )}
+
+          {/* Static Portion / Size / Volume Pricing List */}
+          {hasPortions && (
+            <div className="flex flex-col gap-2 pt-1 pb-1">
+              <span className="text-[11px] font-black uppercase tracking-wider text-foreground/70 flex items-center gap-1.5">
+                <Layers className="h-3.5 w-3.5 text-primary" />
+                <span>{lang === 'tr' ? 'Porsiyon & Boyut Seçenekleri' : 'Portion & Size Options'}</span>
+              </span>
+
+              <div className="flex flex-col gap-1.5">
+                {portions.map((portion) => {
+                  const portionName = lang === 'tr' ? portion.ad_tr : (portion.ad_en || portion.ad_tr);
+
+                  return (
+                    <div
+                      key={portion.id}
+                      className="flex items-center justify-between px-3.5 py-3 rounded-2xl bg-secondary/50 dark:bg-[#1E1711] border border-border"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <span className="w-2 h-2 rounded-full bg-primary flex-shrink-0" />
+                        <span className="text-xs sm:text-sm font-extrabold text-foreground">
+                          {portionName}
+                        </span>
+                      </div>
+                      <span className="font-heading font-black text-sm sm:text-base text-primary">
+                        ₺{Number(portion.fiyat).toFixed(2)}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           )}
 
           {/* Badges / Features list */}
@@ -181,24 +188,20 @@ export function ProductDetailDialog({
               </div>
             </div>
           )}
-
-          {/* 
-           * DEAKTİVE EDİLEN ÖZEL NOT ALANI (İleride açılabilir):
-           * <div className="flex flex-col gap-1.5 mt-1">
-           *   <label className="text-xs font-bold text-foreground/70 px-1">{t('note')}</label>
-           *   <textarea value={notText} onChange={(e) => setNotText(e.target.value)} ... />
-           * </div>
-           */}
         </div>
 
         {/* Footer Actions (Price showcase + Close button) */}
         <div className="p-5 sm:p-6 border-t border-border bg-card text-foreground flex items-center justify-between gap-4">
           <div className="flex flex-col">
             <span className="text-[10px] uppercase tracking-wider text-foreground/60 font-black">
-              {lang === 'tr' ? "FİYAT" : "PRICE"}
+              {hasPortions && minPortionPrice !== maxPortionPrice
+                ? (lang === 'tr' ? "FİYAT ARALIĞI" : "PRICE RANGE")
+                : (lang === 'tr' ? "FİYAT" : "PRICE")}
             </span>
             <span className="font-heading font-black text-2xl sm:text-3xl text-primary">
-              ₺{Number(product.fiyat).toFixed(2)}
+              {hasPortions && minPortionPrice !== maxPortionPrice
+                ? `₺${minPortionPrice.toFixed(0)} - ₺${maxPortionPrice.toFixed(0)}`
+                : `₺${Number(product.fiyat).toFixed(2)}`}
             </span>
           </div>
 
@@ -209,13 +212,6 @@ export function ProductDetailDialog({
           >
             {lang === 'tr' ? "Menüye Dön" : "Back to Menu"}
           </Button>
-
-          {/*
-           * DEAKTİVE EDİLEN SEPETE EKLE BUTONU (İleride açılabilir):
-           * <Button onClick={handleAdd} disabled={isAdding || !product.aktif} className="w-full py-6 rounded-2xl font-heading font-black ...">
-           *   {!product.aktif ? t('soldOutBtn') : isAdding ? "..." : t('addToCart')}
-           * </Button>
-           */}
         </div>
       </DialogContent>
     </Dialog>
