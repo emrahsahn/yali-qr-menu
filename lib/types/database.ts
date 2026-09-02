@@ -16,6 +16,13 @@ export interface Category {
   created_at: string;
 }
 
+export interface ProductPortion {
+  id: string;
+  ad_tr: string;
+  ad_en?: string;
+  fiyat: number;
+}
+
 export interface Product {
   id: string;
   kategori_id: string;
@@ -24,6 +31,7 @@ export interface Product {
   aciklama_tr: string;
   aciklama_en: string;
   fiyat: number;
+  porsiyonlar?: ProductPortion[];
   gorsel_url: string;
   ozellikler: {
     alerjenler?: string[];

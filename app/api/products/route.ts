@@ -44,6 +44,7 @@ export async function POST(request: NextRequest) {
       aciklama_tr,
       aciklama_en,
       fiyat,
+      porsiyonlar,
       gorsel_url,
       ozellikler,
       aktif
@@ -63,6 +64,7 @@ export async function POST(request: NextRequest) {
       aciklama_tr: aciklama_tr ? String(aciklama_tr).trim() : "",
       aciklama_en: aciklama_en ? String(aciklama_en).trim() : "",
       fiyat: Number(fiyat),
+      porsiyonlar: Array.isArray(porsiyonlar) ? porsiyonlar : undefined,
       gorsel_url: gorsel_url || "",
       ozellikler: ozellikler || {},
       aktif: aktif !== undefined ? Boolean(aktif) : true

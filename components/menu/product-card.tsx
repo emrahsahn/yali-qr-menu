@@ -29,6 +29,11 @@ export function ProductCard({
 
   const isSoldOut = !product.aktif;
 
+  const hasPortions = !!(product.porsiyonlar && product.porsiyonlar.length > 1);
+  const minPortionPrice = hasPortions
+    ? Math.min(...product.porsiyonlar!.map(p => Number(p.fiyat) || 0))
+    : Number(product.fiyat);
+
   return (
     <div
       onClick={onClick}
@@ -61,6 +66,11 @@ export function ProductCard({
         
         {/* Badges Overlay */}
         <div className="absolute top-2 left-2 flex flex-col gap-1 z-10">
+          {hasPortions && (
+            <Badge className="bg-primary/90 text-white backdrop-blur border-none text-[10px] py-0 px-2 font-black shadow-xs">
+              ✨ {product.porsiyonlar!.length} {lang === 'tr' ? 'Seçenek' : 'Options'}
+            </Badge>
+          )}
           {isChefSpecial && (
             <Badge className="bg-amber-600/90 text-white backdrop-blur border-none text-[10px] py-0 px-2 font-semibold">
               ⭐ Şefin Özel
@@ -115,7 +125,10 @@ export function ProductCard({
               ? "bg-muted text-foreground/50 border-border line-through" 
               : "text-primary bg-primary/10 border-primary/20"
           }`}>
-            ₺{Number(product.fiyat).toFixed(2)}
+            {hasPortions 
+              ? (lang === 'tr' ? `₺${minPortionPrice.toFixed(2)}'den` : `From ₺${minPortionPrice.toFixed(2)}`)
+              : `₺${Number(product.fiyat).toFixed(2)}`
+            }
           </span>
         </div>
         

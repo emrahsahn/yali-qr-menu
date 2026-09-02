@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState } from "react"
-import { Product, Category } from "@/lib/types/database"
+import { Product, Category, ProductPortion } from "@/lib/types/database"
 import {
   Dialog,
   DialogContent,
@@ -29,7 +29,11 @@ import {
   Camera,
   ImagePlus,
   Smartphone,
-  Globe
+  Globe,
+  Layers,
+  Plus,
+  Trash2,
+  Wine
 } from "lucide-react"
 
 // Curated Gourmet Presets for quick selection
@@ -89,6 +93,9 @@ export function ProductManagementModal({
   const [hazirlamaSuresi, setHazirlamaSuresi] = useState("15 dk")
   const [aktif, setAktif] = useState(true)
 
+  // Multi-Portion / Size / Volume state
+  const [porsiyonlar, setPorsiyonlar] = useState<ProductPortion[]>([])
+
   // Attribute Toggles
   const [vejetaryen, setVejetaryen] = useState(false)
   const [vegan, setVegan] = useState(false)
@@ -122,11 +129,9 @@ export function ProductManagementModal({
     reader.readAsDataURL(file)
   }
 
-  // Load existing product or set defaults. Adjusting state during render
-  // (guarded by a sync key) instead of inside an effect avoids cascading
-  // re-renders while keeping the form in sync with the target product.
+  // Sync state when modal opens or product changes
   if (isOpen) {
-    const syncKey = `open:${product ? product.id : "new"}`
+    const syncKey = product ? `edit:${product.id}` : "create:new"
     if (formSyncKey !== syncKey) {
       setFormSyncKey(syncKey)
       if (product) {
@@ -134,11 +139,17 @@ export function ProductManagementModal({
         setAdEn(product.ad_en || "")
         setAciklamaTr(product.aciklama_tr || "")
         setAciklamaEn(product.aciklama_en || "")
-        setFiyat(String(product.fiyat || 0))
-        setKategoriId(product.kategori_id || (categories[0]?.id || ""))
-        setGorselUrl(product.gorsel_url || "")
+        setFiyat(String(product.fiyat ?? "0"))
+        setKategoriId(product.kategori_id || categories[0]?.id || "")
+        setGorselUrl(product.gorsel_url || GOURMET_PRESET_IMAGES[0].url)
         setHazirlamaSuresi(product.ozellikler?.hazirlama_suresi || "15 dk")
         setAktif(product.aktif !== undefined ? product.aktif : true)
+
+        setPorsiyonlar(
+          product.porsiyonlar && Array.isArray(product.porsiyonlar)
+            ? JSON.parse(JSON.stringify(product.porsiyonlar))
+            : []
+        )
 
         setVejetaryen(!!product.ozellikler?.vejetaryen)
         setVegan(!!product.ozellikler?.vegan)
@@ -157,6 +168,7 @@ export function ProductManagementModal({
         setGorselUrl(GOURMET_PRESET_IMAGES[0].url)
         setHazirlamaSuresi("15 dk")
         setAktif(true)
+        setPorsiyonlar([])
 
         setVejetaryen(false)
         setVegan(false)
@@ -175,6 +187,59 @@ export function ProductManagementModal({
     )
   }
 
+  // Portion Presets & Handlers
+  const applyPreset = (type: "porsiyon" | "kahve" | "hacim") => {
+    const base = parseFloat(fiyat) || 100
+    if (type === "porsiyon") {
+      setPorsiyonlar([
+        { id: "opt-1", ad_tr: "1 Porsiyon", ad_en: "1 Portion", fiyat: base },
+        { id: "opt-2", ad_tr: "1.5 Porsiyon", ad_en: "1.5 Portion", fiyat: Math.round(base * 1.4) }
+      ])
+    } else if (type === "kahve") {
+      setPorsiyonlar([
+        { id: "opt-1", ad_tr: "Küçük Boy", ad_en: "Small", fiyat: base },
+        { id: "opt-2", ad_tr: "Orta Boy", ad_en: "Medium", fiyat: base + 25 },
+        { id: "opt-3", ad_tr: "Büyük Boy", ad_en: "Large", fiyat: base + 45 }
+      ])
+    } else if (type === "hacim") {
+      setPorsiyonlar([
+        { id: "opt-1", ad_tr: "35 cl", ad_en: "35 cl", fiyat: base },
+        { id: "opt-2", ad_tr: "50 cl", ad_en: "50 cl", fiyat: Math.round(base * 1.35) },
+        { id: "opt-3", ad_tr: "70 cl", ad_en: "70 cl", fiyat: Math.round(base * 1.8) },
+        { id: "opt-4", ad_tr: "100 cl", ad_en: "100 cl", fiyat: Math.round(base * 2.4) }
+      ])
+    }
+  }
+
+  const addCustomPortion = () => {
+    const nextNum = porsiyonlar.length + 1
+    setPorsiyonlar(prev => [
+      ...prev,
+      {
+        id: "opt-" + Date.now() + "-" + Math.random().toString(36).substring(2, 6),
+        ad_tr: `Seçenek ${nextNum}`,
+        ad_en: `Option ${nextNum}`,
+        fiyat: parseFloat(fiyat) || 0
+      }
+    ])
+  }
+
+  const updatePortion = (id: string, field: keyof ProductPortion, val: string | number) => {
+    setPorsiyonlar(prev =>
+      prev.map(p => {
+        if (p.id !== id) return p
+        return {
+          ...p,
+          [field]: field === "fiyat" ? parseFloat(String(val)) || 0 : val
+        }
+      })
+    )
+  }
+
+  const removePortion = (id: string) => {
+    setPorsiyonlar(prev => prev.filter(p => p.id !== id))
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!adTr.trim()) {
@@ -188,6 +253,18 @@ export function ProductManagementModal({
 
     setIsSubmitting(true)
     try {
+      const validPortions = porsiyonlar
+        .filter(p => p.ad_tr.trim().length > 0)
+        .map(p => ({
+          id: p.id || ("opt-" + Math.random().toString(36).substring(2, 7)),
+          ad_tr: p.ad_tr.trim(),
+          ad_en: p.ad_en?.trim() || p.ad_tr.trim(),
+          fiyat: Number(p.fiyat) || 0
+        }))
+
+      // Base price: if portions defined, use first portion's price
+      const basePrice = validPortions.length > 0 ? validPortions[0].fiyat : (parseFloat(fiyat) || 0)
+
       await onSave({
         ...(product?.id && { id: product.id }),
         kategori_id: kategoriId,
@@ -195,7 +272,8 @@ export function ProductManagementModal({
         ad_en: adEn.trim() || adTr.trim(),
         aciklama_tr: aciklamaTr.trim(),
         aciklama_en: aciklamaEn.trim() || aciklamaTr.trim(),
-        fiyat: parseFloat(fiyat) || 0,
+        fiyat: basePrice,
+        porsiyonlar: validPortions.length > 0 ? validPortions : undefined,
         gorsel_url: gorselUrl,
         aktif,
         ozellikler: {
@@ -233,7 +311,7 @@ export function ProductManagementModal({
                 {product ? "Ürünü Düzenle" : "Yeni Ürün Ekle"}
               </DialogTitle>
               <DialogDescription className="text-xs text-foreground/60 font-semibold mt-0.5 hidden sm:block">
-                Müşterilerin masalarındaki QR menüde görünecek ürün bilgilerini ve etiketlerini belirleyin.
+                Müşterilerin masalarındaki QR menüde görünecek ürün bilgilerini, porsiyon/boyutlarını ve etiketlerini belirleyin.
               </DialogDescription>
             </div>
           </div>
@@ -322,7 +400,9 @@ export function ProductManagementModal({
                 </div>
 
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-bold text-foreground/80">Satış Fiyatı (₺) *</label>
+                  <label className="text-xs font-bold text-foreground/80">
+                    {porsiyonlar.length > 0 ? "Varsayılan / Başlangıç Fiyatı (₺)" : "Satış Fiyatı (₺) *"}
+                  </label>
                   <input
                     type="number"
                     step="0.5"
@@ -355,212 +435,338 @@ export function ProductManagementModal({
                     rows={2.5}
                     value={aciklamaEn}
                     onChange={(e) => setAciklamaEn(e.target.value)}
-                    placeholder="Ingredients and serving detail..."
+                    placeholder="Ingredients and serving details..."
                     className="w-full text-xs font-medium p-3 sm:p-3.5 rounded-2xl border border-border bg-background focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all resize-none"
                   />
                 </div>
               </div>
             </div>
 
-            <hr className="border-border opacity-60" />
-
-            {/* Image Selection Section */}
-            <div className="flex flex-col gap-4">
+            {/* NEW: Multi-Portion, Size & Volume Management Group */}
+            <div className="flex flex-col gap-3 p-4 sm:p-5 rounded-3xl bg-secondary/40 border border-border">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                <span className="text-xs uppercase tracking-wider font-black text-primary flex items-center gap-1.5">
-                  <Camera className="h-4 w-4" /> Ürün Görseli
-                </span>
+                <div>
+                  <span className="text-xs uppercase tracking-wider font-black text-primary flex items-center gap-1.5">
+                    <Layers className="h-4 w-4" /> Porsiyon, Boyut & Hacim Seçenekleri
+                  </span>
+                  <p className="text-[11px] text-foreground/60 font-semibold mt-0.5">
+                    Yemekler için (1 Porsiyon / 1.5 Porsiyon), kahveler için (Küçük / Orta / Büyük) veya içecekler için (50 cl / 70 cl / 100 cl).
+                  </p>
+                </div>
 
-                {/* Subtabs */}
-                <div className="flex items-center gap-1 bg-muted p-1 rounded-2xl border border-border">
+                {/* Quick Presets Buttons */}
+                <div className="flex flex-wrap items-center gap-1.5">
                   <button
                     type="button"
-                    onClick={() => setActiveTab("upload")}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-extrabold cursor-pointer transition-all flex items-center gap-1.5 ${
-                      activeTab === "upload" ? "bg-primary text-primary-foreground shadow-sm" : "text-foreground/70 hover:text-foreground"
-                    }`}
+                    onClick={() => applyPreset("porsiyon")}
+                    className="px-2.5 py-1 rounded-xl bg-card hover:bg-muted border border-border text-[10px] font-extrabold text-foreground flex items-center gap-1 transition-all cursor-pointer"
+                    title="1 Porsiyon ve 1.5 Porsiyon Ekle"
                   >
-                    <Upload className="h-3.5 w-3.5" />
-                    <span>Cihazdan Yükle</span>
+                    <Utensils className="h-3 w-3 text-primary" />
+                    <span>🍽️ Porsiyon</span>
                   </button>
 
                   <button
                     type="button"
-                    onClick={() => setActiveTab("preset")}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-extrabold cursor-pointer transition-all flex items-center gap-1.5 ${
-                      activeTab === "preset" ? "bg-primary text-primary-foreground shadow-sm" : "text-foreground/70 hover:text-foreground"
-                    }`}
+                    onClick={() => applyPreset("kahve")}
+                    className="px-2.5 py-1 rounded-xl bg-card hover:bg-muted border border-border text-[10px] font-extrabold text-foreground flex items-center gap-1 transition-all cursor-pointer"
+                    title="Küçük, Orta, Büyük Boy Ekle"
                   >
-                    <span>📸 Gurme Galeri</span>
+                    <Coffee className="h-3 w-3 text-primary" />
+                    <span>☕ Boyut</span>
                   </button>
 
                   <button
                     type="button"
-                    onClick={() => setActiveTab("url")}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-extrabold cursor-pointer transition-all flex items-center gap-1.5 ${
-                      activeTab === "url" ? "bg-primary text-primary-foreground shadow-sm" : "text-foreground/70 hover:text-foreground"
-                    }`}
+                    onClick={() => applyPreset("hacim")}
+                    className="px-2.5 py-1 rounded-xl bg-card hover:bg-muted border border-border text-[10px] font-extrabold text-foreground flex items-center gap-1 transition-all cursor-pointer"
+                    title="35cl, 50cl, 70cl, 100cl Ekle"
                   >
-                    <Globe className="h-3.5 w-3.5" />
-                    <span>Web Linki</span>
+                    <Wine className="h-3 w-3 text-primary" />
+                    <span>🍷 Hacim (CL)</span>
                   </button>
                 </div>
               </div>
 
-              {/* Tab 1: File Upload */}
-              {activeTab === "upload" && (
-                <div className="flex flex-col gap-2">
-                  <label className="group relative flex flex-col items-center justify-center p-6 sm:p-8 rounded-3xl border-2 border-dashed border-primary/30 hover:border-primary bg-primary/5 hover:bg-primary/10 transition-all cursor-pointer text-center">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleFileUpload}
-                      className="hidden"
-                    />
-                    <div className="p-3.5 bg-primary/10 text-primary rounded-2xl mb-2 group-hover:scale-110 transition-transform">
-                      <ImagePlus className="h-7 w-7" />
+              {/* Dynamic Portions List */}
+              {porsiyonlar.length > 0 ? (
+                <div className="flex flex-col gap-2 mt-2">
+                  {porsiyonlar.map((portion, idx) => (
+                    <div
+                      key={portion.id || idx}
+                      className="grid grid-cols-12 gap-2 items-center p-2.5 rounded-2xl bg-card border border-border shadow-xs"
+                    >
+                      {/* TR Title */}
+                      <div className="col-span-5 sm:col-span-4 flex flex-col gap-0.5">
+                        <label className="text-[9px] font-extrabold text-foreground/50 uppercase">İsim (TR)</label>
+                        <input
+                          type="text"
+                          required
+                          value={portion.ad_tr}
+                          onChange={(e) => updatePortion(portion.id, "ad_tr", e.target.value)}
+                          placeholder="Örn: 1.5 Porsiyon"
+                          className="w-full text-xs font-bold px-2.5 py-1.5 rounded-xl border border-border bg-background focus:outline-none focus:border-primary"
+                        />
+                      </div>
+
+                      {/* EN Title */}
+                      <div className="col-span-4 sm:col-span-4 flex flex-col gap-0.5">
+                        <label className="text-[9px] font-extrabold text-foreground/50 uppercase">İsim (EN)</label>
+                        <input
+                          type="text"
+                          value={portion.ad_en || ""}
+                          onChange={(e) => updatePortion(portion.id, "ad_en", e.target.value)}
+                          placeholder="Örn: 1.5 Portion"
+                          className="w-full text-xs font-bold px-2.5 py-1.5 rounded-xl border border-border bg-background focus:outline-none focus:border-primary"
+                        />
+                      </div>
+
+                      {/* Price */}
+                      <div className="col-span-2 sm:col-span-3 flex flex-col gap-0.5">
+                        <label className="text-[9px] font-extrabold text-foreground/50 uppercase">Fiyat (₺)</label>
+                        <input
+                          type="number"
+                          step="0.5"
+                          min="0"
+                          required
+                          value={portion.fiyat}
+                          onChange={(e) => updatePortion(portion.id, "fiyat", e.target.value)}
+                          placeholder="0.00"
+                          className="w-full text-xs font-black text-primary px-2.5 py-1.5 rounded-xl border border-border bg-background focus:outline-none focus:border-primary"
+                        />
+                      </div>
+
+                      {/* Delete Button */}
+                      <div className="col-span-1 flex items-center justify-end pt-3">
+                        <button
+                          type="button"
+                          onClick={() => removePortion(portion.id)}
+                          className="p-1.5 rounded-xl text-foreground/40 hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer"
+                          title="Seçeneği Sil"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
                     </div>
-                    <span className="text-xs sm:text-sm font-black text-foreground">
-                      Fotoğraf Yüklemek İçin Tıklayın veya Sürükleyin
-                    </span>
-                    <span className="text-[11px] text-foreground/50 font-semibold mt-1">
-                      JPG, PNG, WEBP veya GIF (Maks. 8 MB)
-                    </span>
+                  ))}
+
+                  <div className="flex items-center justify-between pt-1">
+                    <button
+                      type="button"
+                      onClick={addCustomPortion}
+                      className="px-3 py-1.5 rounded-xl bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 text-xs font-extrabold flex items-center gap-1.5 transition-all cursor-pointer"
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                      <span>+ Yeni Seçenek Ekle</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setPorsiyonlar([])}
+                      className="text-[11px] font-bold text-foreground/50 hover:text-destructive transition-colors cursor-pointer"
+                    >
+                      Tüm Seçenekleri Temizle
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center justify-between p-3 rounded-2xl bg-card/60 border border-dashed border-border mt-1">
+                  <span className="text-xs text-foreground/60 font-semibold">
+                    Bu ürün için henüz farklı porsiyon veya boyut tanımlanmadı (Tek sabit fiyat uygulanır).
+                  </span>
+                  <button
+                    type="button"
+                    onClick={addCustomPortion}
+                    className="px-3 py-1.5 rounded-xl bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 text-xs font-extrabold flex items-center gap-1.5 transition-all cursor-pointer flex-shrink-0"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                    <span>Porsiyon / Boyut Ekle</span>
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Visual & Photo Selection Group */}
+            <div className="flex flex-col gap-3">
+              <span className="text-xs uppercase tracking-wider font-black text-primary flex items-center gap-1.5">
+                <ImagePlus className="h-4 w-4" /> Ürün Görseli
+              </span>
+
+              {/* Tabs: Upload, Presets, URL */}
+              <div className="flex gap-2 p-1 bg-muted/60 rounded-2xl w-fit">
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("upload")}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    activeTab === "upload" ? "bg-card text-foreground shadow-xs" : "text-foreground/60 hover:text-foreground"
+                  }`}
+                >
+                  <Upload className="h-3.5 w-3.5 inline mr-1.5" /> Cihazdan Yükle
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("preset")}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    activeTab === "preset" ? "bg-card text-foreground shadow-xs" : "text-foreground/60 hover:text-foreground"
+                  }`}
+                >
+                  <Sparkles className="h-3.5 w-3.5 inline mr-1.5" /> Hazır Gurme Fotoğrafları
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("url")}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    activeTab === "url" ? "bg-card text-foreground shadow-xs" : "text-foreground/60 hover:text-foreground"
+                  }`}
+                >
+                  <Globe className="h-3.5 w-3.5 inline mr-1.5" /> Bağlantı (URL)
+                </button>
+              </div>
+
+              {activeTab === "upload" && (
+                <div className="flex items-center gap-4 p-4 rounded-2xl border border-dashed border-border bg-background">
+                  <label className="flex-1 flex flex-col items-center justify-center p-4 border border-dashed border-primary/30 hover:border-primary/60 rounded-2xl bg-primary/5 hover:bg-primary/10 transition-all cursor-pointer">
+                    <Camera className="h-6 w-6 text-primary mb-1.5" />
+                    <span className="text-xs font-extrabold text-primary">Fotoğraf Seç veya Sürükle</span>
+                    <span className="text-[10px] text-foreground/50 font-medium mt-0.5">PNG, JPG, WEBP (Maks. 8MB)</span>
+                    <input type="file" accept="image/*" onChange={handleFileUpload} className="hidden" />
                   </label>
                 </div>
               )}
 
-              {/* Tab 2: Preset Gourmet Gallery */}
               {activeTab === "preset" && (
-                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 xl:grid-cols-6 gap-2.5 max-h-48 overflow-y-auto p-2 rounded-3xl bg-muted/30 border border-border">
+                <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 max-h-48 overflow-y-auto p-1">
                   {GOURMET_PRESET_IMAGES.map((preset, idx) => (
-                    <button
+                    <div
                       key={idx}
-                      type="button"
-                      onClick={() => {
-                        setGorselUrl(preset.url)
-                      }}
-                      className={`group relative aspect-square rounded-2xl overflow-hidden border-2 transition-all cursor-pointer shadow-sm ${
-                        gorselUrl === preset.url ? "border-primary ring-2 ring-primary/30 scale-95" : "border-transparent opacity-80 hover:opacity-100"
+                      onClick={() => setGorselUrl(preset.url)}
+                      className={`relative aspect-[4/3] rounded-xl overflow-hidden cursor-pointer border-2 transition-all ${
+                        gorselUrl === preset.url ? "border-primary ring-2 ring-primary/30 scale-95" : "border-border hover:border-foreground/30"
                       }`}
                     >
-                      <Image src={preset.url} alt={preset.name} fill className="object-cover" />
-                      <div className="absolute inset-0 bg-black/40 flex items-end p-1.5 text-[9px] font-bold text-white leading-tight">
-                        <span className="truncate">{preset.name}</span>
-                      </div>
-                    </button>
+                      <Image src={preset.url} alt={preset.name} fill unoptimized className="object-cover" />
+                      <span className="absolute inset-x-0 bottom-0 bg-black/70 text-white text-[9px] font-bold p-1 text-center truncate">
+                        {preset.name}
+                      </span>
+                    </div>
                   ))}
                 </div>
               )}
 
-              {/* Tab 3: Custom URL */}
               {activeTab === "url" && (
-                <div className="flex gap-2">
+                <div className="flex flex-col gap-1.5">
                   <input
                     type="url"
                     value={gorselUrl}
                     onChange={(e) => setGorselUrl(e.target.value)}
-                    placeholder="https://images.unsplash.com/photo-..."
-                    className="flex-1 text-xs sm:text-sm font-semibold px-3.5 py-3 rounded-2xl border border-border bg-background focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                    placeholder="https://images.unsplash.com/..."
+                    className="w-full text-xs font-semibold px-3.5 py-2.5 rounded-2xl border border-border bg-background focus:outline-none focus:border-primary"
                   />
                 </div>
               )}
             </div>
 
-            <hr className="border-border opacity-60" />
-
-            {/* Preparation & Dietary Attributes */}
+            {/* Preparation Time & Dietary Badges */}
             <div className="flex flex-col gap-4">
               <span className="text-xs uppercase tracking-wider font-black text-primary flex items-center gap-1.5">
-                <Clock className="h-4 w-4" /> Hazırlama Süresi & Özellik Etiketleri
+                <Star className="h-4 w-4" /> Özellikler & Etiketler
               </span>
 
-              <div className="flex items-center gap-3">
-                <label className="text-xs font-bold text-foreground/80 whitespace-nowrap">Hazırlama Süresi:</label>
-                <input
-                  type="text"
-                  value={hazirlamaSuresi}
-                  onChange={(e) => setHazirlamaSuresi(e.target.value)}
-                  placeholder="Örn: 15-20 dk"
-                  className="w-36 text-xs sm:text-sm font-semibold px-3.5 py-2 rounded-xl border border-border bg-background"
-                />
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-bold text-foreground/80">Hazırlama Süresi</label>
+                <div className="flex flex-wrap gap-2">
+                  {["5-10 dk", "15 dk", "20 dk", "25 dk", "30+ dk"].map((time) => (
+                    <button
+                      key={time}
+                      type="button"
+                      onClick={() => setHazirlamaSuresi(time)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                        hazirlamaSuresi === time
+                          ? "bg-primary text-white border-primary shadow-xs"
+                          : "border-border text-foreground/70 hover:bg-muted"
+                      }`}
+                    >
+                      ⏱️ {time}
+                    </button>
+                  ))}
+                </div>
               </div>
 
-              {/* Toggles Grid */}
+              {/* Toggle Badges */}
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
                 <button
                   type="button"
-                  onClick={() => setVejetaryen(!vejetaryen)}
-                  className={`p-3 rounded-2xl border text-xs font-extrabold flex items-center justify-between transition-all cursor-pointer ${
-                    vejetaryen ? "bg-emerald-500/15 border-emerald-500/40 text-emerald-600 dark:text-emerald-400" : "bg-background border-border text-foreground/60 hover:bg-muted"
+                  onClick={() => setSefOnerisi(!sefOnerisi)}
+                  className={`p-3 rounded-2xl border text-left flex items-center gap-2 transition-all cursor-pointer ${
+                    sefOnerisi ? "bg-purple-500/10 border-purple-500/30 text-purple-600 dark:text-purple-400 font-extrabold shadow-xs" : "border-border text-foreground/70 hover:bg-muted"
                   }`}
                 >
-                  <span className="flex items-center gap-1.5"><Leaf className="h-4 w-4 text-emerald-500" /> 🌱 Vejetaryen</span>
-                  {vejetaryen && <Check className="h-4 w-4" />}
+                  <Star className="h-4 w-4 text-purple-500" />
+                  <span className="text-xs">Şefin Önerisi</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setVejetaryen(!vejetaryen)}
+                  className={`p-3 rounded-2xl border text-left flex items-center gap-2 transition-all cursor-pointer ${
+                    vejetaryen ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 font-extrabold shadow-xs" : "border-border text-foreground/70 hover:bg-muted"
+                  }`}
+                >
+                  <Leaf className="h-4 w-4 text-emerald-500" />
+                  <span className="text-xs">Vejetaryen</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setVegan(!vegan)}
-                  className={`p-3 rounded-2xl border text-xs font-extrabold flex items-center justify-between transition-all cursor-pointer ${
-                    vegan ? "bg-green-500/15 border-green-500/40 text-green-600 dark:text-green-400" : "bg-background border-border text-foreground/60 hover:bg-muted"
+                  className={`p-3 rounded-2xl border text-left flex items-center gap-2 transition-all cursor-pointer ${
+                    vegan ? "bg-green-500/10 border-green-500/30 text-green-600 dark:text-green-400 font-extrabold shadow-xs" : "border-border text-foreground/70 hover:bg-muted"
                   }`}
                 >
-                  <span className="flex items-center gap-1.5"><Leaf className="h-4 w-4 text-green-600" /> 🌿 Vegan</span>
-                  {vegan && <Check className="h-4 w-4" />}
+                  <Leaf className="h-4 w-4 text-green-500" />
+                  <span className="text-xs">Vegan</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setAcili(!acili)}
-                  className={`p-3 rounded-2xl border text-xs font-extrabold flex items-center justify-between transition-all cursor-pointer ${
-                    acili ? "bg-rose-500/15 border-rose-500/40 text-rose-600 dark:text-rose-400" : "bg-background border-border text-foreground/60 hover:bg-muted"
+                  className={`p-3 rounded-2xl border text-left flex items-center gap-2 transition-all cursor-pointer ${
+                    acili ? "bg-rose-500/10 border-rose-500/30 text-rose-600 dark:text-rose-400 font-extrabold shadow-xs" : "border-border text-foreground/70 hover:bg-muted"
                   }`}
                 >
-                  <span className="flex items-center gap-1.5"><Flame className="h-4 w-4 text-rose-500" /> 🌶️ Acılı</span>
-                  {acili && <Check className="h-4 w-4" />}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setKafein(!kafein)}
-                  className={`p-3 rounded-2xl border text-xs font-extrabold flex items-center justify-between transition-all cursor-pointer ${
-                    kafein ? "bg-amber-500/15 border-amber-500/40 text-amber-600 dark:text-amber-400" : "bg-background border-border text-foreground/60 hover:bg-muted"
-                  }`}
-                >
-                  <span className="flex items-center gap-1.5"><Coffee className="h-4 w-4 text-amber-600" /> ☕ Kafeinli</span>
-                  {kafein && <Check className="h-4 w-4" />}
+                  <Flame className="h-4 w-4 text-rose-500" />
+                  <span className="text-xs">Acılı</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setSoguk(!soguk)}
-                  className={`p-3 rounded-2xl border text-xs font-extrabold flex items-center justify-between transition-all cursor-pointer ${
-                    soguk ? "bg-blue-500/15 border-blue-500/40 text-blue-600 dark:text-blue-400" : "bg-background border-border text-foreground/60 hover:bg-muted"
+                  className={`p-3 rounded-2xl border text-left flex items-center gap-2 transition-all cursor-pointer ${
+                    soguk ? "bg-sky-500/10 border-sky-500/30 text-sky-600 dark:text-sky-400 font-extrabold shadow-xs" : "border-border text-foreground/70 hover:bg-muted"
                   }`}
                 >
-                  <span className="flex items-center gap-1.5"><Snowflake className="h-4 w-4 text-blue-500" /> 🧊 Soğuk</span>
-                  {soguk && <Check className="h-4 w-4" />}
+                  <Snowflake className="h-4 w-4 text-sky-500" />
+                  <span className="text-xs">Soğuk</span>
                 </button>
 
                 <button
                   type="button"
-                  onClick={() => setSefOnerisi(!sefOnerisi)}
-                  className={`p-3 rounded-2xl border text-xs font-extrabold flex items-center justify-between transition-all cursor-pointer ${
-                    sefOnerisi ? "bg-purple-500/15 border-purple-500/40 text-purple-600 dark:text-purple-400" : "bg-background border-border text-foreground/60 hover:bg-muted"
+                  onClick={() => setKafein(!kafein)}
+                  className={`p-3 rounded-2xl border text-left flex items-center gap-2 transition-all cursor-pointer ${
+                    kafein ? "bg-amber-500/10 border-amber-500/30 text-amber-600 dark:text-amber-400 font-extrabold shadow-xs" : "border-border text-foreground/70 hover:bg-muted"
                   }`}
                 >
-                  <span className="flex items-center gap-1.5"><Star className="h-4 w-4 text-purple-500" /> ⭐ Şef Önerisi</span>
-                  {sefOnerisi && <Check className="h-4 w-4" />}
+                  <Coffee className="h-4 w-4 text-amber-500" />
+                  <span className="text-xs">Kafeinli</span>
                 </button>
               </div>
 
-              {/* Allergens selector chips */}
-              <div className="flex flex-col gap-2 mt-1">
+              {/* Allergen Multiselect */}
+              <div className="flex flex-col gap-1.5 mt-2">
                 <label className="text-xs font-bold text-foreground/80 flex items-center gap-1.5">
-                  <AlertTriangle className="h-4 w-4 text-amber-500" /> Alerjen Bilgileri:
+                  <AlertTriangle className="h-3.5 w-3.5 text-amber-500" /> Alerjen Bilgileri
                 </label>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-1.5">
                   {COMMON_ALLERGENS.map((allergen) => {
                     const isSelected = selectedAllergens.includes(allergen)
                     return (
@@ -568,13 +774,14 @@ export function ProductManagementModal({
                         key={allergen}
                         type="button"
                         onClick={() => toggleAllergen(allergen)}
-                        className={`px-3 py-1.5 rounded-xl text-xs font-extrabold border transition-all cursor-pointer ${
+                        className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
                           isSelected
-                            ? "bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-500/40 shadow-sm"
-                            : "bg-background text-foreground/60 border-border hover:bg-muted"
+                            ? "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30 font-extrabold shadow-xs"
+                            : "border-border text-foreground/70 hover:bg-muted"
                         }`}
                       >
-                        {isSelected ? "✓ " : "+ "}{allergen}
+                        {isSelected && <Check className="h-3 w-3 inline mr-1" />}
+                        {allergen}
                       </button>
                     )
                   })}
@@ -620,6 +827,11 @@ export function ProductManagementModal({
                   
                   {/* Badges Overlay */}
                   <div className="absolute top-2 left-2 flex flex-col gap-1 z-10">
+                    {porsiyonlar.length > 1 && (
+                      <Badge className="bg-primary/90 text-white border-none text-[9px] py-0 px-1.5 font-black">
+                        ✨ {porsiyonlar.length} Seçenek
+                      </Badge>
+                    )}
                     {vejetaryen && (
                       <Badge className="bg-emerald-500/90 text-white border-none text-[10px] py-0 px-2 font-semibold">
                         🌱 Veg
@@ -653,7 +865,9 @@ export function ProductManagementModal({
                       {adTr || "Ürün Adı"}
                     </h3>
                     <span className="font-heading font-black text-xs text-primary bg-primary/10 px-2 py-0.5 rounded-md whitespace-nowrap">
-                      ₺{Number(fiyat || 0).toFixed(2)}
+                      {porsiyonlar.length > 1
+                        ? `₺${Math.min(...porsiyonlar.map(p => Number(p.fiyat) || 0)).toFixed(2)}'den`
+                        : `₺${Number(fiyat || 0).toFixed(2)}`}
                     </span>
                   </div>
                   
@@ -661,6 +875,17 @@ export function ProductManagementModal({
                     <p className="mt-1 text-[11px] text-foreground/60 line-clamp-2 leading-relaxed font-medium">
                       {aciklamaTr}
                     </p>
+                  )}
+
+                  {/* Portions preview pill list */}
+                  {porsiyonlar.length > 0 && (
+                    <div className="mt-2 flex flex-wrap gap-1">
+                      {porsiyonlar.map((por, idx) => (
+                        <span key={idx} className="text-[9px] font-extrabold bg-secondary text-foreground/80 px-2 py-0.5 rounded-md border border-border">
+                          {por.ad_tr}: ₺{Number(por.fiyat).toFixed(0)}
+                        </span>
+                      ))}
+                    </div>
                   )}
 
                   {/* Allergen hint in preview */}
@@ -677,31 +902,30 @@ export function ProductManagementModal({
             </div>
 
             <p className="text-[11px] text-foreground/50 text-center font-semibold italic max-w-xs px-2">
-              * Müşteriler masalardaki QR kodu tarattığında bu lezzet tam olarak burada gördüğünüz mobil kartla menüde sergilenecektir.
+              * Müşteriler masalardaki QR kodu tarattığında bu lezzet tam olarak burada gördüğünüz mobil kartla ve porsiyon seçenekleriyle menüde sergilenecektir.
             </p>
           </div>
 
+          {/* Footer Sticky Action Buttons */}
+          <div className="lg:col-span-12 p-4 sm:p-6 border-t border-border bg-muted/40 flex items-center justify-between gap-3">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onClose}
+              className="px-6 py-5 rounded-2xl font-bold text-xs uppercase cursor-pointer"
+            >
+              Vazgeç
+            </Button>
+
+            <Button
+              type="submit"
+              disabled={isSubmitting}
+              className="px-8 py-5 rounded-2xl font-heading font-black text-sm bg-primary hover:bg-primary/90 text-white shadow-lg shadow-primary/25 transition-all cursor-pointer"
+            >
+              {isSubmitting ? "Kaydediliyor..." : product ? "Değişiklikleri Kaydet" : "Ürünü Menüye Ekle"}
+            </Button>
+          </div>
         </form>
-
-        {/* Footer Actions */}
-        <div className="p-4 sm:p-5 border-t border-border bg-card flex items-center justify-end gap-3">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={onClose}
-            className="rounded-2xl text-xs font-bold py-5 px-5"
-          >
-            İptal
-          </Button>
-
-          <Button
-            onClick={handleSubmit}
-            disabled={isSubmitting}
-            className="rounded-2xl text-xs sm:text-sm font-heading font-black py-5 px-8 bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20 cursor-pointer"
-          >
-            {isSubmitting ? "Kaydediliyor..." : product ? "Değişiklikleri Kaydet" : "Ürünü Kaydet ve Yayınla"}
-          </Button>
-        </div>
       </DialogContent>
     </Dialog>
   )
