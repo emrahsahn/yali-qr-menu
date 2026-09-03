@@ -1,0 +1,19 @@
+User-agent: *
+Disallow: /menu
+Disallow: /restaurant
+Disallow: /panel
+Disallow: /admin
+Disallow: /api/
+
+# Block all AI scrapers and search bots from private menu content
+User-agent: Googlebot
+Disallow: /menu
+Disallow: /restaurant
+Disallow: /panel
+Disallow: /admin
+
+User-agent: Bingbot
+Disallow: /menu
+Disallow: /restaurant
+Disallow: /panel
+Disallow: /admin

@@ -30,7 +30,7 @@ export function TableQrCardPrinter({ baseMenuUrl }: TableQrCardPrinterProps) {
     const num = startNumber + i
     const formattedNum = num < 10 ? `0${num}` : `${num}`
     const label = `${prefix}${formattedNum}`
-    const url = baseMenuUrl // Strictly common menu URL as requested
+    const url = baseMenuUrl.includes("?") ? `${baseMenuUrl}&qr=yali` : `${baseMenuUrl}?qr=yali`
     return { num, formattedNum, label, url }
   })
 

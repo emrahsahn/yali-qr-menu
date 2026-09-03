@@ -715,7 +715,7 @@ export default function StaffPanelPage() {
                 <QRCodeCanvas
                   id="yali-qr-canvas"
                   ref={qrCanvasRef}
-                  value={menuUrl}
+                  value={`${menuUrl}?qr=yali`}
                   size={400}
                   level="H"
                   includeMargin={false}
