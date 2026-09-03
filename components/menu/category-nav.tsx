@@ -1,11 +1,12 @@
 "use client"
 
-import React from "react"
+import React, { useState } from "react"
 import { useTable } from "@/lib/context/table-context"
 import { Button } from "@/components/ui/button"
 import { useTheme } from "next-themes"
 import { Globe, Sun, Moon, Search } from "lucide-react"
 import { YaliLogo } from "@/components/ui/yali-logo"
+import { LogoZoomModal } from "@/components/menu/logo-zoom-modal"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -32,16 +33,33 @@ export function CategoryNav({
 }) {
   const { categories, lang, setLang } = useTable();
   const { theme, setTheme } = useTheme();
+  const [isLogoModalOpen, setIsLogoModalOpen] = useState(false);
 
   return (
     <div className="sticky top-0 z-30 w-full flex flex-col glass-panel border-b border-border shadow-md bg-card/95 backdrop-blur-md">
+      {/* Logo Büyütme Modalı */}
+      <LogoZoomModal
+        isOpen={isLogoModalOpen}
+        onClose={() => setIsLogoModalOpen(false)}
+      />
+
       {/* Top utility row */}
       <div className="flex items-center justify-between px-3.5 sm:px-4 py-2 sm:py-2.5 border-b border-border">
-        <div className="flex items-center gap-2.5">
-          <YaliLogo size="xs" shadow />
-          <span className="font-heading font-black text-base sm:text-lg tracking-wider text-primary">YALI</span>
-        </div>
-        
+        {/* Tıklanabilir ve Hoverlandığında Büyüyen Logo */}
+        <button
+          type="button"
+          onClick={() => setIsLogoModalOpen(true)}
+          className="flex items-center gap-2.5 group cursor-pointer text-left focus:outline-hidden select-none"
+          title={lang === 'tr' ? "Yalı Logosu (Büyütmek için tıklayın)" : "Yalı Logo (Click to zoom)"}
+        >
+          <div className="transition-all duration-300 transform group-hover:scale-120 group-hover:shadow-[0_0_16px_rgba(185,138,74,0.5)] group-active:scale-95 rounded-lg">
+            <YaliLogo size="xs" shadow />
+          </div>
+          <span className="font-heading font-black text-base sm:text-lg tracking-wider text-primary group-hover:text-[#B98A4A] transition-colors">
+            YALI
+          </span>
+        </button>
+
         <div className="flex items-center gap-1.5 sm:gap-2">
           {/* Search Toggle Button */}
           {onToggleSearch && (
@@ -49,11 +67,10 @@ export function CategoryNav({
               variant={isSearchOpen ? "default" : "ghost"}
               size="icon"
               onClick={onToggleSearch}
-              className={`h-8.5 w-8.5 sm:h-9 sm:w-9 rounded-full border transition-all cursor-pointer ${
-                isSearchOpen
-                  ? "bg-primary text-white border-primary shadow-xs"
-                  : "border-border text-foreground/80 hover:text-primary hover:border-primary/40 hover:bg-primary/10"
-              }`}
+              className={`h-8.5 w-8.5 sm:h-9 sm:w-9 rounded-full border transition-all cursor-pointer ${isSearchOpen
+                ? "bg-primary text-white border-primary shadow-xs"
+                : "border-border text-foreground/80 hover:text-primary hover:border-primary/40 hover:bg-primary/10"
+                }`}
               title={lang === 'tr' ? "Menüde Ara" : "Search Menu"}
             >
               <Search className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
@@ -105,11 +122,10 @@ export function CategoryNav({
             <button
               key={category.id}
               onClick={() => onCategoryChange(category.id)}
-              className={`flex-shrink-0 px-3.5 sm:px-4 py-1.5 sm:py-2 rounded-full text-[11px] sm:text-xs font-black uppercase tracking-wider transition-all duration-300 cursor-pointer ${
-                isActive
-                  ? "bg-primary text-white shadow-md shadow-primary/25 scale-[1.02]"
-                  : "bg-secondary/70 dark:bg-[#1E1711] border border-border hover:bg-secondary text-foreground/75 hover:text-foreground"
-              }`}
+              className={`flex-shrink-0 px-3.5 sm:px-4 py-1.5 sm:py-2 rounded-full text-[11px] sm:text-xs font-black uppercase tracking-wider transition-all duration-300 cursor-pointer ${isActive
+                ? "bg-primary text-white shadow-md shadow-primary/25 scale-[1.02]"
+                : "bg-secondary/70 dark:bg-[#1E1711] border border-border hover:bg-secondary text-foreground/75 hover:text-foreground"
+                }`}
             >
               {ad}
             </button>
