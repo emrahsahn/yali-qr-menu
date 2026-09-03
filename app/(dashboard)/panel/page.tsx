@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/context/auth-context"
 import { Product, Category } from "@/lib/types/database"
 import { ProductManagementModal } from "@/components/dashboard/product-management-modal"
 import { CategoryManagementModal } from "@/components/dashboard/category-management-modal"
+import { TableQrCardPrinter } from "@/components/dashboard/table-qr-card-printer"
 import { QRCodeCanvas } from "qrcode.react"
 import Image from "next/image"
 import Link from "next/link"
@@ -652,49 +653,27 @@ export default function StaffPanelPage() {
           </div>
         )}
 
-        {/* TAB 2: QR CODE & MENU LINK GENERATOR */}
+        {/* TAB 2: QR CODE & 7.5x10 CM TABLE CARD PRINTER */}
         {activeTab === "qr" && (
-          <div className="max-w-3xl mx-auto w-full flex flex-col gap-6">
-            <div className="bg-card p-6 sm:p-8 rounded-3xl border border-border shadow-xl flex flex-col items-center text-center relative overflow-hidden">
-              <div className="absolute -top-10 -right-10 w-40 h-40 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="max-w-5xl mx-auto w-full flex flex-col gap-8">
+            {/* 7.5x10 cm Table Card Printing & Download Suite */}
+            <TableQrCardPrinter baseMenuUrl={menuUrl} />
 
-              {/* Title */}
-              <div className="p-3 rounded-2xl bg-primary/10 text-primary border border-primary/20 mb-3">
-                <QrCode className="h-7 w-7" />
+            {/* General Direct Link & Standalone QR Box */}
+            <div className="bg-card p-6 sm:p-8 rounded-3xl border border-border shadow-md flex flex-col items-center text-center relative overflow-hidden">
+              <div className="flex items-center gap-2 text-primary font-black text-xs uppercase tracking-widest mb-1">
+                <QrCode className="h-4 w-4" />
+                DİREKT MENÜ BAĞLANTISI & HIZLI KOD
               </div>
-              <h2 className="font-heading font-black text-2xl text-foreground">
-                Yalı Restaurant Müşteri QR Kodu
-              </h2>
-              <p className="text-xs text-foreground/60 max-w-md mt-1 font-medium">
-                Masalara, menü kartlarına ve stantlara basılacak tekil ortak dijital QR menü bağlantısı.
+              <h3 className="font-heading font-black text-xl text-foreground">
+                Genel Ortak Menü Linki
+              </h3>
+              <p className="text-xs text-foreground/60 max-w-md mt-1">
+                Masa numarası olmaksızın doğrudan menüyü açan ortak bağlantı.
               </p>
 
-              {/* Live QR Code Box */}
-              <div className="mt-8 p-6 rounded-3xl bg-white text-black shadow-2xl border border-border flex flex-col items-center gap-3 relative">
-                <div className="flex items-center gap-1.5 text-xs font-black tracking-widest text-[#B98A4A] uppercase mb-1">
-                  <Sparkles className="h-4 w-4" />
-                  YALI RESTAURANT
-                </div>
-
-                <QRCodeCanvas
-                  id="yali-qr-canvas"
-                  ref={qrCanvasRef}
-                  value={menuUrl}
-                  size={240}
-                  level="H"
-                  includeMargin={false}
-                />
-
-                <span className="text-[10px] font-bold text-black/60 uppercase tracking-widest mt-1">
-                  MENÜYÜ GÖRMEK İÇİN OKUTUNUZ
-                </span>
-              </div>
-
               {/* URL Display & Copy */}
-              <div className="w-full max-w-lg mt-8 flex flex-col gap-2 text-left">
-                <label className="text-[11px] font-bold text-foreground/60 uppercase tracking-wider px-1">
-                  Müşteri Menü Bağlantısı:
-                </label>
+              <div className="w-full max-w-lg mt-6 flex flex-col gap-2 text-left">
                 <div className="flex items-center gap-2 p-2 rounded-2xl bg-secondary border border-border">
                   <span className="flex-1 text-xs font-mono font-semibold px-2 text-foreground truncate">
                     {menuUrl}
@@ -710,35 +689,37 @@ export default function StaffPanelPage() {
                 </div>
               </div>
 
-              {/* Action Download Buttons */}
-              <div className="flex flex-wrap items-center justify-center gap-3 mt-6">
+              {/* Action Buttons */}
+              <div className="flex flex-wrap items-center justify-center gap-3 mt-5">
                 <button
                   type="button"
                   onClick={handleDownloadQrPng}
-                  className="flex items-center gap-2 px-6 py-3.5 rounded-2xl bg-primary hover:bg-primary/95 text-primary-foreground font-bold text-xs uppercase tracking-wider shadow-lg shadow-primary/20 transition-all cursor-pointer"
+                  className="flex items-center gap-2 px-5 py-3 rounded-2xl bg-secondary hover:bg-secondary/80 border border-border text-foreground font-bold text-xs uppercase tracking-wider transition-all cursor-pointer"
                 >
-                  <Download className="h-4 w-4" />
-                  <span>QR Kodu PNG Olarak İndir</span>
+                  <Download className="h-4 w-4 text-primary" />
+                  <span>Tekil Ham QR (PNG) İndir</span>
                 </button>
 
                 <Link
                   href="/menu"
                   target="_blank"
-                  className="flex items-center gap-2 px-6 py-3.5 rounded-2xl bg-secondary hover:bg-secondary/80 border border-border font-bold text-xs uppercase tracking-wider text-foreground transition-all"
+                  className="flex items-center gap-2 px-5 py-3 rounded-2xl bg-secondary hover:bg-secondary/80 border border-border font-bold text-xs uppercase tracking-wider text-foreground transition-all"
                 >
                   <ExternalLink className="h-4 w-4 text-primary" />
                   <span>Menüyü Yeni Sekmede Aç</span>
                 </Link>
               </div>
 
-              {/* Printing Tips */}
-              <div className="mt-8 p-4 rounded-2xl bg-secondary/50 border border-border text-left w-full max-w-lg flex flex-col gap-1.5 text-xs text-foreground/70">
-                <span className="font-black text-foreground flex items-center gap-1.5">
-                  💡 Baskı ve Masa Tavsiyesi:
-                </span>
-                <p className="text-[11px] leading-relaxed">
-                  İndirdiğiniz PNG dosyasını masa numarası gerektirmeksizin tüm restoran masalarına, pleksi stantlara veya giriş tabelalarına doğrudan bastırabilirsiniz.
-                </p>
+              {/* Hidden Canvas for standard standalone QR download */}
+              <div className="hidden">
+                <QRCodeCanvas
+                  id="yali-qr-canvas"
+                  ref={qrCanvasRef}
+                  value={menuUrl}
+                  size={400}
+                  level="H"
+                  includeMargin={false}
+                />
               </div>
             </div>
           </div>
