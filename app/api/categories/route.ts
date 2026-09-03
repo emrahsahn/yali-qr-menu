@@ -4,8 +4,9 @@ import {
   saveCategory,
   deleteCategory
 } from "@/lib/data/menu-store"
+import { verifyStaffSession } from "@/lib/security/auth-guard"
 
-// GET: Tüm kategorileri sıralı getir
+// GET: Tüm kategorileri sıralı getir (HERKESE AÇIK - Müşteriler kategorileri okuyabilmelidir)
 export async function GET() {
   try {
     const categories = await getCategories()
@@ -23,9 +24,17 @@ export async function GET() {
   }
 }
 
-// POST: Yeni kategori ekle
+// POST: Yeni kategori ekle (SADECE GÖREVLİ / AUTH GEREKLİDİR)
 export async function POST(request: NextRequest) {
   try {
+    const auth = verifyStaffSession(request)
+    if (!auth.authenticated) {
+      return NextResponse.json(
+        { error: "Yetkisiz işlem. Lütfen önce görevli girişi yapınız." },
+        { status: 401 }
+      )
+    }
+
     const body = await request.json()
     const { ad_tr, ad_en, sira } = body
 
@@ -46,9 +55,17 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// PUT: Kategori güncelle
+// PUT: Kategori güncelle (SADECE GÖREVLİ / AUTH GEREKLİDİR)
 export async function PUT(request: NextRequest) {
   try {
+    const auth = verifyStaffSession(request)
+    if (!auth.authenticated) {
+      return NextResponse.json(
+        { error: "Yetkisiz işlem. Lütfen önce görevli girişi yapınız." },
+        { status: 401 }
+      )
+    }
+
     const body = await request.json()
     const { id, ...updates } = body
 
@@ -68,9 +85,17 @@ export async function PUT(request: NextRequest) {
   }
 }
 
-// DELETE: Kategori sil
+// DELETE: Kategori sil (SADECE GÖREVLİ / AUTH GEREKLİDİR)
 export async function DELETE(request: NextRequest) {
   try {
+    const auth = verifyStaffSession(request)
+    if (!auth.authenticated) {
+      return NextResponse.json(
+        { error: "Yetkisiz işlem. Lütfen önce görevli girişi yapınız." },
+        { status: 401 }
+      )
+    }
+
     const { searchParams } = new URL(request.url)
     let id = searchParams.get("id")
 

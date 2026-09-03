@@ -78,6 +78,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (typeof window !== "undefined") {
       localStorage.removeItem("yali_user")
     }
+    // Clear server-side HttpOnly cookie
+    fetch("/api/auth", { method: "DELETE" }).catch(() => {})
     router.replace("/")
   }
 
