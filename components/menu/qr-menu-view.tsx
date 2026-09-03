@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useRef } from "react"
+import React, { useState, useEffect, useRef } from "react"
 import { TableProvider, useTable } from "@/lib/context/table-context"
 import { Category, Product } from "@/lib/types/database"
 import { CategoryNav } from "@/components/menu/category-nav"
@@ -225,6 +225,9 @@ function MenuMainContent() {
   );
 }
 
+import { QrLockScreen } from "@/components/menu/qr-lock-screen"
+import { isQrSessionValid, grantQrSession } from "@/lib/security/qr-session"
+
 export function QrMenuView({
   initialCategories = [],
   initialProducts = []
@@ -232,6 +235,51 @@ export function QrMenuView({
   initialCategories?: Category[];
   initialProducts?: Product[];
 }) {
+  const [hasAccess, setHasAccess] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const params = new URLSearchParams(window.location.search);
+    const qrParam = params.get("qr");
+    const tableParam = params.get("table");
+    const isStaff = !!localStorage.getItem("yali_user");
+
+    // 1. If scanned with physical QR code (?qr=... or ?table=...)
+    if (qrParam || tableParam) {
+      grantQrSession();
+      setHasAccess(true);
+      // Clean query parameter from address bar so sharing URL only shares /menu (which locks outside)
+      try {
+        const cleanUrl = window.location.pathname;
+        window.history.replaceState({}, "", cleanUrl);
+      } catch {}
+      return;
+    }
+
+    // 2. If staff is logged in, grant access for testing
+    if (isStaff) {
+      grantQrSession();
+      setHasAccess(true);
+      return;
+    }
+
+    // 3. Verify if user has an active 2-hour QR session
+    if (isQrSessionValid()) {
+      setHasAccess(true);
+    } else {
+      setHasAccess(false);
+    }
+  }, []);
+
+  if (hasAccess === null) {
+    return <LoadingSkeleton />;
+  }
+
+  if (!hasAccess) {
+    return <QrLockScreen />;
+  }
+
   return (
     <TableProvider initialCategories={initialCategories} initialProducts={initialProducts}>
       <MenuMainContent />
