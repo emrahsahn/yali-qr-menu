@@ -10,28 +10,18 @@ import { LoadingSkeleton } from "@/components/ui/loading-skeleton"
 import { YaliPreloader } from "@/components/ui/yali-preloader"
 import { RegisterServiceWorker } from "@/components/pwa/register-sw"
 import { InstallPrompt } from "@/components/pwa/install-prompt"
-import { Sparkles, Play, Search, X, UtensilsCrossed } from "lucide-react"
-
-/*
- * DEAKTİVE EDİLEN BİLEŞENLER (Gerektiğinde açılmak üzere korundu):
- * import { CartBar } from "@/components/cart/cart-bar"
- * import { CartDrawer } from "@/components/cart/cart-drawer"
- * import { StatusBanner } from "@/components/ui/status-banner"
- */
+import { QrLockScreen } from "@/components/menu/qr-lock-screen"
+import { isQrSessionValid, grantQrSession } from "@/lib/security/qr-session"
+import { Play, Search, X, UtensilsCrossed } from "lucide-react"
 
 function MenuMainContent() {
-  const { categories, products, isLoading, lang, t } = useTable();
+  const { categories, products, isLoading, lang } = useTable();
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [replayPreloader, setReplayPreloader] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
-
-  /*
-   * DEAKTİVE EDİLEN SEPET STATE'İ:
-   * const [isCartOpen, setIsCartOpen] = useState(false);
-   */
 
   const toggleSearch = () => {
     setIsSearchOpen(prev => {
@@ -68,6 +58,7 @@ function MenuMainContent() {
           ((q.includes("soğuk") || q.includes("soguk")) && (p.ozellikler?.soğuk || p.ozellikler?.soguk)) ||
           ((q.includes("şef") || q.includes("sef")) && p.ozellikler?.sef_onerisi) ||
           (q.includes("kahve") && p.ozellikler?.kafein);
+
         return matchTr || matchEn || matchDescTr || matchDescEn || matchAllergens || matchTag;
       })
     : activeCategory
@@ -90,11 +81,6 @@ function MenuMainContent() {
 
       <div className="flex-1 flex flex-col w-full max-w-lg sm:max-w-xl md:max-w-2xl lg:max-w-3xl mx-auto pb-24 min-h-screen relative bg-gradient-to-br from-[#B98A4A]/5 via-transparent to-[#D8C4A0]/5">
         
-        {/*
-         * DEAKTİVE EDİLEN SİPARİŞ DURUM ÇUBUĞU:
-         * <StatusBanner />
-         */}
-
         {/* Category Nav Header */}
         <CategoryNav
           activeCategory={isSearching ? null : activeCategory}
@@ -134,7 +120,7 @@ function MenuMainContent() {
             </div>
             {isSearching && (
               <div className="mt-2 px-1 flex items-center justify-between text-[11px] font-bold text-foreground/55">
-                <span>"{searchQuery}" için {filteredProducts.length} sonuç</span>
+                <span>&ldquo;{searchQuery}&rdquo; için {filteredProducts.length} sonuç</span>
                 <button
                   type="button"
                   onClick={() => {
@@ -214,19 +200,10 @@ function MenuMainContent() {
           isOpen={!!selectedProduct}
           onClose={() => setSelectedProduct(null)}
         />
-
-        {/*
-         * DEAKTİVE EDİLEN SEPET ÇUBUĞU VE ÇEKMECESİ (İleride açılabilir):
-         * <CartBar onOpenCart={() => setIsCartOpen(true)} />
-         * <CartDrawer isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
-         */}
       </div>
     </>
   );
 }
-
-import { QrLockScreen } from "@/components/menu/qr-lock-screen"
-import { isQrSessionValid, grantQrSession } from "@/lib/security/qr-session"
 
 export function QrMenuView({
   initialCategories = [],
