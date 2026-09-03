@@ -16,8 +16,8 @@ const playfair = Playfair_Display({
 });
 
 export const metadata: Metadata = {
-  title: "Yalı — Konteynır · Yalı Restaurant · Club · Seafood",
-  description: "Yalı multi-venue landing page and customer portal",
+  title: "Yalı",
+  description: "Yalı customer portal and QR menu for restaurant",
   manifest: "/manifest.json",
   icons: {
     icon: "/icons/icon-192.png",
@@ -42,11 +42,11 @@ interface LayoutProps {
 
 export default function RootLayout({ children }: LayoutProps) {
   return (
-      <html
-        lang="tr"
-        suppressHydrationWarning
-        className={`${inter.variable} ${playfair.variable} h-full antialiased`}
-      >
+    <html
+      lang="tr"
+      suppressHydrationWarning
+      className={`${inter.variable} ${playfair.variable} h-full antialiased`}
+    >
       <body
         suppressHydrationWarning
         className="min-h-full flex flex-col bg-background text-foreground transition-colors duration-300"
