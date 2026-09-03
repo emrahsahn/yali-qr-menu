@@ -4,9 +4,8 @@ import React, { useState } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/lib/context/auth-context"
 import { Button } from "@/components/ui/button"
-import { Lock, User as UserIcon, ArrowRight, QrCode } from "lucide-react"
+import { Lock, User as UserIcon, ArrowRight } from "lucide-react"
 import { YaliLogo } from "@/components/ui/yali-logo"
-import Link from "next/link"
 
 export default function LoginPage() {
   const { login } = useAuth()
@@ -129,17 +128,10 @@ export default function LoginPage() {
           </form>
         </div>
 
-        {/* Link to Customer QR Menu */}
-        <div className="mt-8 text-center flex flex-col items-center gap-2">
-          <Link
-            href="/menu"
-            className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-card/80 hover:bg-card border border-border text-xs font-black text-foreground shadow-md hover:scale-102 transition-all cursor-pointer"
-          >
-            <QrCode className="h-4 w-4 text-primary" />
-            <span>📱 Müşteri QR Menüsünü Aç / Önizle</span>
-          </Link>
-          <p className="text-[11px] text-foreground/40 font-semibold mt-1">
-            Yalı Restaurant Dijital QR Menü Sistemi
+        {/* Footer info */}
+        <div className="mt-8 text-center">
+          <p className="text-[11px] text-foreground/40 font-semibold">
+            Yalı Restaurant Dijital Görevli Paneli
           </p>
         </div>
       </div>
