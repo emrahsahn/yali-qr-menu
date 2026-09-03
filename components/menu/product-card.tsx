@@ -120,7 +120,7 @@ export function ProductCard({
           }`}>
             {ad}
           </h3>
-          <span className={`font-heading font-black text-xs whitespace-nowrap px-2 py-0.5 rounded-md border ${
+          <span className={`font-sans font-extrabold text-xs whitespace-nowrap px-2.5 py-1 rounded-lg border tabular-nums tracking-tight ${
             isSoldOut 
               ? "bg-muted text-foreground/50 border-border line-through" 
               : "text-primary bg-primary/10 border-primary/20"

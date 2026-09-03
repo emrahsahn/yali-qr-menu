@@ -864,7 +864,7 @@ export function ProductManagementModal({
                     <h3 className="font-heading font-black text-sm leading-tight text-foreground">
                       {adTr || "Ürün Adı"}
                     </h3>
-                    <span className="font-heading font-black text-xs text-primary bg-primary/10 px-2 py-0.5 rounded-md whitespace-nowrap">
+                    <span className="font-sans font-extrabold text-xs text-primary bg-primary/10 px-2.5 py-1 rounded-lg tabular-nums tracking-tight whitespace-nowrap">
                       {porsiyonlar.length > 1
                         ? `₺${Math.min(...porsiyonlar.map(p => Number(p.fiyat) || 0)).toFixed(2)}'den`
                         : `₺${Number(fiyat || 0).toFixed(2)}`}
