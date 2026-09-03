@@ -11,6 +11,7 @@ import { YaliPreloader } from "@/components/ui/yali-preloader"
 import { RegisterServiceWorker } from "@/components/pwa/register-sw"
 import { InstallPrompt } from "@/components/pwa/install-prompt"
 import { QrLockScreen } from "@/components/menu/qr-lock-screen"
+import { DeveloperFooter } from "@/components/menu/developer-footer"
 import { isQrSessionValid, grantQrSession } from "@/lib/security/qr-session"
 import { Play, Search, X, UtensilsCrossed } from "lucide-react"
 
@@ -193,6 +194,9 @@ function MenuMainContent() {
             <span>Açılış Animasyonunu Tekrar Oynat</span>
           </button>
         </div>
+
+        {/* Developer Attribution & Contact Footer */}
+        <DeveloperFooter />
 
         {/* Product Detail Dialog (Photo, Allergens, Info) */}
         <ProductDetailDialog
