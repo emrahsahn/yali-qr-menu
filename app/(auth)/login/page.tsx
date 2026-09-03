@@ -4,7 +4,8 @@ import React, { useState } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/lib/context/auth-context"
 import { Button } from "@/components/ui/button"
-import { Lock, User as UserIcon, UtensilsCrossed, ArrowRight, QrCode } from "lucide-react"
+import { Lock, User as UserIcon, ArrowRight, QrCode } from "lucide-react"
+import { YaliLogo } from "@/components/ui/yali-logo"
 import Link from "next/link"
 
 export default function LoginPage() {
@@ -28,13 +29,13 @@ export default function LoginPage() {
 
     try {
       const result = await login(username, password)
-      if (result.success && result.user) {
+      if (result.success) {
         router.push("/panel")
       } else {
-        setError(result.error || "Giriş bilgileri hatalı.")
+        setError(result.error || "Giriş başarısız. Lütfen bilgilerinizi kontrol edin.")
       }
     } catch {
-      setError("Giriş yapılırken bir hata oluştu. Lütfen tekrar deneyin.")
+      setError("Giriş yapılırken beklenmeyen bir hata oluştu.")
     } finally {
       setLoading(false)
     }
@@ -50,9 +51,7 @@ export default function LoginPage() {
       <div className="w-full max-w-md relative z-10 flex flex-col items-center">
         {/* Brand Header */}
         <div className="flex flex-col items-center gap-3 text-center mb-8">
-          <div className="bg-primary/15 p-4 rounded-full border border-primary/30 animate-pulse shadow-[0_0_30px_rgba(200,90,90,0.2)] text-primary">
-            <UtensilsCrossed className="h-9 w-9" />
-          </div>
+          <YaliLogo size="md" shadow className="rounded-3xl" />
           <h1 className="font-heading font-black text-4xl text-foreground tracking-widest leading-none">
             YALI RESTAURANT
           </h1>

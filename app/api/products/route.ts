@@ -5,8 +5,9 @@ import {
   toggleProductActive,
   deleteProduct
 } from "@/lib/data/menu-store"
+import { verifyStaffSession } from "@/lib/security/auth-guard"
 
-// GET: Ürünleri getir (kategori, aktiflik durumuna göre filtrelenebilir)
+// GET: Ürünleri getir (HERKESE AÇIK - Müşteriler menüyü okuyabilmelidir)
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
@@ -33,9 +34,17 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST: Yeni ürün ekle
+// POST: Yeni ürün ekle (SADECE GÖREVLİ / AUTH GEREKLİDİR)
 export async function POST(request: NextRequest) {
   try {
+    const auth = verifyStaffSession(request)
+    if (!auth.authenticated) {
+      return NextResponse.json(
+        { error: "Yetkisiz işlem. Lütfen önce görevli girişi yapınız." },
+        { status: 401 }
+      )
+    }
+
     const body = await request.json()
     const {
       kategori_id,
@@ -77,9 +86,17 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// PUT: Ürün güncelle (fiyat, başlık, açıklama, tükendi vb.)
+// PUT: Ürün güncelle (SADECE GÖREVLİ / AUTH GEREKLİDİR)
 export async function PUT(request: NextRequest) {
   try {
+    const auth = verifyStaffSession(request)
+    if (!auth.authenticated) {
+      return NextResponse.json(
+        { error: "Yetkisiz işlem. Lütfen önce görevli girişi yapınız." },
+        { status: 401 }
+      )
+    }
+
     const body = await request.json()
     const { id, ...updates } = body
 
@@ -99,9 +116,17 @@ export async function PUT(request: NextRequest) {
   }
 }
 
-// PATCH: Hızlı Tükendi / Aktiflik Değişimi
+// PATCH: Hızlı Tükendi / Aktiflik Değişimi (SADECE GÖREVLİ / AUTH GEREKLİDİR)
 export async function PATCH(request: NextRequest) {
   try {
+    const auth = verifyStaffSession(request)
+    if (!auth.authenticated) {
+      return NextResponse.json(
+        { error: "Yetkisiz işlem. Lütfen önce görevli girişi yapınız." },
+        { status: 401 }
+      )
+    }
+
     const body = await request.json()
     const { id } = body
 
@@ -121,9 +146,17 @@ export async function PATCH(request: NextRequest) {
   }
 }
 
-// DELETE: Ürün sil
+// DELETE: Ürün sil (SADECE GÖREVLİ / AUTH GEREKLİDİR)
 export async function DELETE(request: NextRequest) {
   try {
+    const auth = verifyStaffSession(request)
+    if (!auth.authenticated) {
+      return NextResponse.json(
+        { error: "Yetkisiz işlem. Lütfen önce görevli girişi yapınız." },
+        { status: 401 }
+      )
+    }
+
     const { searchParams } = new URL(request.url)
     let id = searchParams.get("id")
 
