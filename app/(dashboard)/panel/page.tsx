@@ -550,8 +550,10 @@ export default function StaffPanelPage() {
                             <span className="text-[10px] font-extrabold text-primary uppercase tracking-wider truncate">
                               {categoryName}
                             </span>
-                            <span className="font-heading font-black text-sm text-primary">
-                              ₺{Number(product.fiyat).toFixed(2)}
+                            <span className="font-sans font-extrabold text-sm text-primary tabular-nums tracking-tight whitespace-nowrap">
+                              {product.porsiyonlar && product.porsiyonlar.length > 1
+                                ? `₺${Math.min(...product.porsiyonlar.map(p => Number(p.fiyat) || 0)).toFixed(2)}'den`
+                                : `₺${Number(product.fiyat).toFixed(2)}`}
                             </span>
                           </div>
 
@@ -567,6 +569,11 @@ export default function StaffPanelPage() {
 
                           {/* Quick Badges */}
                           <div className="flex flex-wrap gap-1 mt-auto pt-2">
+                            {product.porsiyonlar && product.porsiyonlar.length > 1 && (
+                              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-primary/15 text-primary">
+                                ✨ {product.porsiyonlar.length} Seçenek
+                              </span>
+                            )}
                             {product.ozellikler?.sef_onerisi && (
                               <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-amber-500/15 text-amber-600 dark:text-amber-400">
                                 ⭐ Şefin Özel

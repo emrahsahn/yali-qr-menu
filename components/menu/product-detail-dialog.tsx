@@ -119,7 +119,7 @@ export function ProductDetailDialog({
                           {portionName}
                         </span>
                       </div>
-                      <span className="font-heading font-black text-sm sm:text-base text-primary">
+                      <span className="font-sans font-extrabold text-sm sm:text-base text-primary tabular-nums tracking-tight">
                         ₺{Number(portion.fiyat).toFixed(2)}
                       </span>
                     </div>
@@ -198,7 +198,7 @@ export function ProductDetailDialog({
                 ? (lang === 'tr' ? "FİYAT ARALIĞI" : "PRICE RANGE")
                 : (lang === 'tr' ? "FİYAT" : "PRICE")}
             </span>
-            <span className="font-heading font-black text-2xl sm:text-3xl text-primary">
+            <span className="font-sans font-black text-2xl sm:text-3xl text-primary tabular-nums tracking-tight">
               {hasPortions && minPortionPrice !== maxPortionPrice
                 ? `₺${minPortionPrice.toFixed(0)} - ₺${maxPortionPrice.toFixed(0)}`
                 : `₺${Number(product.fiyat).toFixed(2)}`}

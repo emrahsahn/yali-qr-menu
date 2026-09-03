@@ -133,13 +133,21 @@ export function TableProvider({
       reloadMenu();
     });
 
-    // Auto-sync polling every 5 seconds for multi-device real-time updates
+    // Auto-sync polling every 45 seconds ONLY if the page/screen is actively visible
     const pollInterval = setInterval(() => {
-      if (active) reloadMenu();
-    }, 5000);
+      if (active && typeof document !== "undefined" && document.visibilityState === "visible") {
+        reloadMenu();
+      }
+    }, 45000);
 
     // Listen to local window broadcast events for instant same-browser updates
     const handleMenuEvent = () => reloadMenu();
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        reloadMenu();
+      }
+    };
+
     let bc: BroadcastChannel | null = null;
     try {
       bc = new BroadcastChannel("yali_menu_events");
@@ -148,12 +156,14 @@ export function TableProvider({
 
     window.addEventListener("yali_menu_updated", handleMenuEvent);
     window.addEventListener("focus", handleMenuEvent);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
       active = false;
       clearInterval(pollInterval);
       window.removeEventListener("yali_menu_updated", handleMenuEvent);
       window.removeEventListener("focus", handleMenuEvent);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
       if (bc) bc.close();
     };
   }, [reloadMenu]);

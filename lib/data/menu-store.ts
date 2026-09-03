@@ -15,7 +15,11 @@ const MENU_FILE_PATH = path.join(process.cwd(), "data", "menu.json")
 declare global {
   // eslint-disable-next-line no-var
   var __yaliMenuData: MenuStoreData | undefined;
+  // eslint-disable-next-line no-var
+  var __yaliMenuLastFetch: number | undefined;
 }
+
+const MEMORY_CACHE_TTL_MS = 15000 // 15 seconds memory cache protects Redis from rapid bursts
 
 function getLocalFileDefaults(): MenuStoreData {
   try {
@@ -61,6 +65,18 @@ function getRedisClient(): Redis | null {
 }
 
 export async function getMenuStore(): Promise<MenuStoreData> {
+  const now = Date.now()
+
+  // 0. Return from in-memory cache if fresh (avoids redundant Redis network calls)
+  if (
+    globalThis.__yaliMenuData &&
+    globalThis.__yaliMenuLastFetch &&
+    now - globalThis.__yaliMenuLastFetch < MEMORY_CACHE_TTL_MS &&
+    globalThis.__yaliMenuData.products.length > 0
+  ) {
+    return globalThis.__yaliMenuData
+  }
+
   const redis = getRedisClient()
 
   // 1. Upstash Redis (Vercel KV)
@@ -71,6 +87,7 @@ export async function getMenuStore(): Promise<MenuStoreData> {
         const parsed = typeof data === "string" ? JSON.parse(data) : data
         if (parsed && Array.isArray(parsed.categories) && Array.isArray(parsed.products) && parsed.products.length > 0) {
           globalThis.__yaliMenuData = parsed
+          globalThis.__yaliMenuLastFetch = now
           return parsed
         }
       }
@@ -79,6 +96,7 @@ export async function getMenuStore(): Promise<MenuStoreData> {
       if (defaultData.products.length > 0) {
         await redis.set("yali_menu_data_v1", defaultData)
         globalThis.__yaliMenuData = defaultData
+        globalThis.__yaliMenuLastFetch = now
         return defaultData
       }
     } catch (err) {
@@ -121,6 +139,7 @@ export async function getMenuStore(): Promise<MenuStoreData> {
 
 export async function persistMenuStore(data: MenuStoreData): Promise<boolean> {
   globalThis.__yaliMenuData = data
+  globalThis.__yaliMenuLastFetch = Date.now()
 
   // 1. Save to Upstash Redis
   const redis = getRedisClient()
