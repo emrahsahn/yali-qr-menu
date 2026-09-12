@@ -16,7 +16,7 @@ const playfair = Playfair_Display({
 });
 
 export const metadata: Metadata = {
-  title: "Yalı",
+  title: "Yalı Restaurant | Dijital QR Menü",
   description: "Yalı customer portal and QR menu for restaurant",
   manifest: "/manifest.json",
   icons: {
