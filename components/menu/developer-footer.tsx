@@ -1,7 +1,6 @@
 "use client"
 
 import React from "react"
-import { Mail } from "lucide-react"
 
 // =========================================================================
 // ✏️ GELİŞTİRİCİ İLETİŞİM BİLGİLERİNİZİ BU ALANDAN DÜZENLEYEBİLİRSİNİZ:
@@ -13,11 +12,25 @@ export const DEVELOPER_CONFIG = {
   // Geliştirici İsmi (2. Satır)
   name: "Emrah SAHIN",
 
-  // Gmail / E-posta Adresiniz (3. Satır)
-  gmail: "sahinemrah3344@gmail.com",
+  // LinkedIn Profil URL'niz (3. Satır)
+  linkedinUrl: "https://www.linkedin.com/in/emrah-şahin/",
+  linkedinLabel: "LinkedIn",
 
   // Instagram Kullanıcı Adınız (@ olmadan - 3. Satır)
   instagramUsername: "shn__emrah"
+}
+
+// Minimal LinkedIn SVG Icon
+function LinkedinIcon({ className = "h-3 w-3" }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="currentColor"
+    >
+      <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z" />
+    </svg>
+  )
 }
 
 // Minimal Instagram SVG Icon
@@ -41,7 +54,6 @@ function InstagramIcon({ className = "h-3 w-3" }: { className?: string }) {
 
 export function DeveloperFooter() {
   const instagramUrl = `https://instagram.com/${DEVELOPER_CONFIG.instagramUsername}`
-  const mailtoUrl = `mailto:${DEVELOPER_CONFIG.gmail}?subject=QR%20Men%C3%BC%20Hakk%C4%B1nda`
 
   return (
     <footer className="w-full max-w-lg mx-auto px-4 mt-8 mb-6 select-none">
@@ -56,19 +68,20 @@ export function DeveloperFooter() {
           {DEVELOPER_CONFIG.name}
         </p>
 
-        {/* 3. Satır: Gmail & Instagram Adresleri */}
+        {/* 3. Satır: LinkedIn & Instagram Adresleri */}
         <div className="flex flex-wrap items-center justify-center gap-3 text-[11px] font-medium text-foreground/60 pt-0.5">
-          {/* Gmail */}
+          {/* LinkedIn */}
           <a
-            href={mailtoUrl}
+            href={DEVELOPER_CONFIG.linkedinUrl}
+            target="_blank"
+            rel="noopener noreferrer"
             className="hover:text-primary hover:underline transition-colors flex items-center gap-1.5 cursor-pointer"
           >
-            <Mail className="h-3 w-3 opacity-70" />
-            <span>{DEVELOPER_CONFIG.gmail}</span>
+            <LinkedinIcon className="h-3 w-3 opacity-80 text-[#0A66C2] dark:text-[#70B5F9]" />
+            <span>{DEVELOPER_CONFIG.linkedinLabel}</span>
           </a>
-        </div>
-        <div className="flex flex-wrap items-center justify-center gap-3 text-[11px] font-medium text-foreground/60 pt-0.5">
 
+          <span className="text-foreground/25">•</span>
 
           {/* Instagram */}
           <a
@@ -77,7 +90,7 @@ export function DeveloperFooter() {
             rel="noopener noreferrer"
             className="hover:text-primary hover:underline transition-colors flex items-center gap-1.5 cursor-pointer"
           >
-            <InstagramIcon className="h-3 w-3 opacity-70" />
+            <InstagramIcon className="h-3 w-3 opacity-75" />
             <span>@{DEVELOPER_CONFIG.instagramUsername}</span>
           </a>
         </div>
