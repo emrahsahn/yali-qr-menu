@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/context/auth-context"
 import { Product, Category } from "@/lib/types/database"
 import { ProductManagementModal } from "@/components/dashboard/product-management-modal"
 import { CategoryManagementModal } from "@/components/dashboard/category-management-modal"
+import { MenuBackupModal } from "@/components/dashboard/menu-backup-modal"
 import { TableQrCardPrinter } from "@/components/dashboard/table-qr-card-printer"
 import { QRCodeCanvas } from "qrcode.react"
 import Image from "next/image"
@@ -29,7 +30,8 @@ import {
   ExternalLink,
   LogOut,
   Moon,
-  Sun
+  Sun,
+  Database
 } from "lucide-react"
 import { useTheme } from "next-themes"
 
@@ -57,6 +59,7 @@ export default function StaffPanelPage() {
   const [isProductModalOpen, setIsProductModalOpen] = useState(false)
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false)
+  const [isBackupModalOpen, setIsBackupModalOpen] = useState(false)
 
   // QR & Copy states
   const [copied, setCopied] = useState(false)
@@ -401,6 +404,15 @@ export default function StaffPanelPage() {
 
               {/* Action Buttons */}
               <div className="flex items-center gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setIsBackupModalOpen(true)}
+                  className="flex items-center gap-1.5 px-4 py-2.5 rounded-2xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-xs font-bold text-amber-600 dark:text-amber-400 transition-all cursor-pointer"
+                >
+                  <Database className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                  <span>Yedekle / Aktar</span>
+                </button>
+
                 <button
                   type="button"
                   onClick={() => setIsCategoryModalOpen(true)}
@@ -750,6 +762,22 @@ export default function StaffPanelPage() {
         onAddCategory={handleAddCategory}
         onUpdateCategory={handleUpdateCategory}
         onDeleteCategory={handleDeleteCategory}
+      />
+
+      {/* Menu Backup & Import Modal */}
+      <MenuBackupModal
+        isOpen={isBackupModalOpen}
+        onClose={() => setIsBackupModalOpen(false)}
+        onSuccess={(msg) => {
+          showToast(msg)
+          fetchData()
+          try {
+            const bc = new BroadcastChannel("yali_menu_events")
+            bc.postMessage({ type: "MENU_UPDATED" })
+            bc.close()
+            window.dispatchEvent(new Event("yali_menu_updated"))
+          } catch {}
+        }}
       />
     </div>
   )
