@@ -361,3 +361,326 @@ export async function deleteCategory(categoryId: string): Promise<boolean> {
   }
   return false
 }
+
+export interface MenuBackupPayload {
+  version: string;
+  system: string;
+  exported_at: string;
+  stats: {
+    category_count: number;
+    product_count: number;
+  };
+  categories: Category[];
+  products: Product[];
+}
+
+export interface ValidationResult {
+  valid: boolean;
+  errors: string[];
+  warnings: string[];
+  stats?: {
+    category_count: number;
+    product_count: number;
+  };
+}
+
+/**
+ * Menü içeri aktarım verisini kapsamlı biçimde doğrular ve sanitize eder.
+ */
+export function validateMenuImportData(raw: unknown): ValidationResult {
+  const errors: string[] = []
+  const warnings: string[] = []
+
+  if (!raw || typeof raw !== "object") {
+    return { valid: false, errors: ["Yüklenen dosya geçerli bir JSON objesi değil."], warnings }
+  }
+
+  const data = raw as Record<string, unknown>
+
+  if (!Array.isArray(data.categories)) {
+    errors.push("'categories' listesi bulunamadı veya bir dizi formatında değil.")
+  }
+
+  if (!Array.isArray(data.products)) {
+    errors.push("'products' listesi bulunamadı veya bir dizi formatında değil.")
+  }
+
+  if (errors.length > 0) {
+    return { valid: false, errors, warnings }
+  }
+
+  const categories = data.categories as Record<string, unknown>[]
+  const products = data.products as Record<string, unknown>[]
+
+  if (categories.length === 0) {
+    errors.push("Menü yedeğinde en az 1 kategori bulunmalıdır.")
+  }
+
+  const categoryIds = new Set<string>()
+
+  categories.forEach((cat, index) => {
+    const idxStr = `Kategori #${index + 1}`
+    if (!cat.ad_tr || typeof cat.ad_tr !== "string" || cat.ad_tr.trim() === "") {
+      errors.push(`${idxStr}: Türkçe kategori adı ('ad_tr') zorunludur.`)
+    }
+    const catId = typeof cat.id === "string" && cat.id.trim() ? cat.id.trim() : `cat-${index + 1}`
+    categoryIds.add(catId)
+  })
+
+  products.forEach((prod, index) => {
+    const prodName = typeof prod.ad_tr === "string" && prod.ad_tr.trim() ? `"${prod.ad_tr}"` : `Ürün #${index + 1}`
+
+    if (!prod.ad_tr || typeof prod.ad_tr !== "string" || prod.ad_tr.trim() === "") {
+      errors.push(`${prodName}: Türkçe ürün adı ('ad_tr') zorunludur.`)
+    }
+
+    if (prod.fiyat === undefined || prod.fiyat === null || isNaN(Number(prod.fiyat)) || Number(prod.fiyat) < 0) {
+      errors.push(`${prodName}: Geçerli bir fiyat ('fiyat') tanımlanmalıdır.`)
+    }
+
+    const catId = typeof prod.kategori_id === "string" ? prod.kategori_id : ""
+    if (!catId || !categoryIds.has(catId)) {
+      warnings.push(`${prodName}: Kategori ID ('${catId}') listedeki kategorilerle eşleşmiyor. Varsayılan ilk kategoriye atanacaktır.`)
+    }
+  })
+
+  return {
+    valid: errors.length === 0,
+    errors,
+    warnings,
+    stats: {
+      category_count: categories.length,
+      product_count: products.length
+    }
+  }
+}
+
+/**
+ * Mevcut menüyü standart yedekleme paketi olarak dışa aktarır.
+ */
+export async function exportMenuData(): Promise<MenuBackupPayload> {
+  const store = await getMenuStore()
+  const sortedCategories = [...store.categories].sort((a, b) => (a.sira || 0) - (b.sira || 0))
+
+  return {
+    version: "1.0",
+    system: "yali-qr-menu",
+    exported_at: new Date().toISOString(),
+    stats: {
+      category_count: sortedCategories.length,
+      product_count: store.products.length
+    },
+    categories: sortedCategories,
+    products: store.products
+  }
+}
+
+/**
+ * Kullanıcıların sıfırdan menü oluşturabilmesi için örnek şablon verisi döndürür.
+ */
+export function getMenuTemplate(): MenuBackupPayload {
+  return {
+    version: "1.0",
+    system: "yali-qr-menu",
+    exported_at: new Date().toISOString(),
+    stats: {
+      category_count: 2,
+      product_count: 3
+    },
+    categories: [
+      {
+        id: "cat-ornek-ana-yemekler",
+        ad_tr: "Ana Yemekler",
+        ad_en: "Main Dishes",
+        sira: 1,
+        created_at: new Date().toISOString()
+      },
+      {
+        id: "cat-ornek-icecekler",
+        ad_tr: "Soğuk İçecekler",
+        ad_en: "Cold Drinks",
+        sira: 2,
+        created_at: new Date().toISOString()
+      }
+    ],
+    products: [
+      {
+        id: "prod-ornek-kofte",
+        kategori_id: "cat-ornek-ana-yemekler",
+        ad_tr: "Izgara Kasap Köfte",
+        ad_en: "Grilled Meatballs",
+        aciklama_tr: "Günün taze garnitürleri ve pilav eşliğinde servis edilir.",
+        aciklama_en: "Served with fresh daily side dishes and rice.",
+        fiyat: 380,
+        porsiyonlar: [
+          { id: "opt-1", ad_tr: "1 Porsiyon (200g)", ad_en: "1 Portion (200g)", fiyat: 380 },
+          { id: "opt-2", ad_tr: "1.5 Porsiyon (300g)", ad_en: "1.5 Portion (300g)", fiyat: 520 }
+        ],
+        gorsel_url: "https://images.unsplash.com/photo-1529042410759-befb1204b468?w=600&auto=format&fit=crop&q=60",
+        ozellikler: {
+          alerjenler: ["Gluten"],
+          hazirlama_suresi: "15 dk",
+          sef_onerisi: true
+        },
+        aktif: true,
+        created_at: new Date().toISOString()
+      },
+      {
+        id: "prod-ornek-ayran",
+        kategori_id: "cat-ornek-icecekler",
+        ad_tr: "Yayık Ayran",
+        ad_en: "Traditional Ayran",
+        aciklama_tr: "Taze nane yaprakları ile.",
+        aciklama_en: "With fresh mint leaves.",
+        fiyat: 60,
+        porsiyonlar: [],
+        gorsel_url: "https://images.unsplash.com/photo-1626803775151-61d756612f97?w=600&auto=format&fit=crop&q=60",
+        ozellikler: {
+          alerjenler: ["Laktoz"]
+        },
+        aktif: true,
+        created_at: new Date().toISOString()
+      }
+    ]
+  }
+}
+
+/**
+ * Bir yedek dosyasından menüyü sisteme yükler (Restore / Migration).
+ * @param rawData Yüklenen JSON verisi
+ * @param mode 'replace' (tüm mevcut menüyü temizle ve yeni veriyle değiştir) | 'merge' (mevcudu koru, eşleşenleri güncelle, yenileri ekle)
+ */
+export async function importMenuData(
+  rawData: unknown,
+  mode: "replace" | "merge" = "replace"
+): Promise<{ success: boolean; stats: { categories: number; products: number }; message: string }> {
+  const validation = validateMenuImportData(rawData)
+  if (!validation.valid) {
+    throw new Error(`Menü doğrulama hatası:\n${validation.errors.join("\n")}`)
+  }
+
+  const payload = rawData as { categories: Partial<Category>[]; products: Partial<Product>[] }
+  const store = await getMenuStore()
+
+  // 1. Kategorileri Formatla ve Temizle
+  const normalizedCategories: Category[] = payload.categories.map((c, idx) => ({
+    id: String(c.id || `cat-${Date.now()}-${idx + 1}`),
+    ad_tr: String(c.ad_tr || "Kategori").trim(),
+    ad_en: String(c.ad_en || c.ad_tr || "Category").trim(),
+    sira: Number(c.sira ?? idx + 1),
+    created_at: c.created_at || new Date().toISOString()
+  }))
+
+  const validCategoryIds = new Set(normalizedCategories.map((c) => c.id))
+  const fallbackCategoryId = normalizedCategories[0]?.id || "default-cat"
+
+  // 2. Ürünleri Formatla ve Temizle
+  const normalizedProducts: Product[] = payload.products.map((p, idx) => {
+    let targetCatId = String(p.kategori_id || "")
+    if (!validCategoryIds.has(targetCatId)) {
+      targetCatId = fallbackCategoryId
+    }
+
+    return {
+      id: String(p.id || `prod-${Date.now()}-${idx + 1}-${Math.random().toString(36).substring(2, 6)}`),
+      kategori_id: targetCatId,
+      ad_tr: String(p.ad_tr || "Yeni Ürün").trim(),
+      ad_en: String(p.ad_en || p.ad_tr || "New Product").trim(),
+      aciklama_tr: String(p.aciklama_tr || "").trim(),
+      aciklama_en: String(p.aciklama_en || "").trim(),
+      fiyat: Number(p.fiyat || 0),
+      porsiyonlar: Array.isArray(p.porsiyonlar) ? p.porsiyonlar : [],
+      gorsel_url: String(p.gorsel_url || ""),
+      ozellikler: p.ozellikler && typeof p.ozellikler === "object" ? (p.ozellikler as Product["ozellikler"]) : {},
+      aktif: p.aktif !== false,
+      created_at: p.created_at || new Date().toISOString()
+    }
+  })
+
+  let finalCategories: Category[]
+  let finalProducts: Product[]
+
+  if (mode === "replace") {
+    // Tam yenileme (Sıfırdan veritabanı veya sunucu kurulumu)
+    finalCategories = normalizedCategories
+    finalProducts = normalizedProducts
+  } else {
+    // Birleştirme (Merge / Upsert)
+    const catMap = new Map<string, Category>()
+    store.categories.forEach((c) => catMap.set(c.id, c))
+    normalizedCategories.forEach((c) => {
+      catMap.set(c.id, { ...(catMap.get(c.id) || {}), ...c })
+    })
+    finalCategories = Array.from(catMap.values()).sort((a, b) => a.sira - b.sira)
+
+    const prodMap = new Map<string, Product>()
+    store.products.forEach((p) => prodMap.set(p.id, p))
+    normalizedProducts.forEach((p) => {
+      prodMap.set(p.id, { ...(prodMap.get(p.id) || {}), ...p })
+    })
+    finalProducts = Array.from(prodMap.values())
+  }
+
+  // 3. Kalıcı Hafızaya Kaydet (Redis & File)
+  const newStore: MenuStoreData = {
+    categories: finalCategories,
+    products: finalProducts
+  }
+  await persistMenuStore(newStore)
+
+  // 4. Supabase Bağlantısı Varsa Tablolara Toplu Senkronizasyon Yap
+  try {
+    const supabase = await createClient()
+    if (supabase) {
+      if (mode === "replace") {
+        // İlgili tabloları temizle
+        await supabase.from("products").delete().neq("id", "00000000-0000-0000-0000-000000000000")
+        await supabase.from("categories").delete().neq("id", "00000000-0000-0000-0000-000000000000")
+      }
+
+      // Kategorileri upsert et
+      if (finalCategories.length > 0) {
+        await supabase.from("categories").upsert(
+          finalCategories.map((c) => ({
+            id: c.id,
+            ad_tr: c.ad_tr,
+            ad_en: c.ad_en,
+            sira: c.sira
+          }))
+        )
+      }
+
+      // Ürünleri upsert et
+      if (finalProducts.length > 0) {
+        await supabase.from("products").upsert(
+          finalProducts.map((p) => ({
+            id: p.id,
+            kategori_id: p.kategori_id,
+            ad_tr: p.ad_tr,
+            ad_en: p.ad_en,
+            aciklama_tr: p.aciklama_tr,
+            aciklama_en: p.aciklama_en,
+            fiyat: p.fiyat,
+            gorsel_url: p.gorsel_url,
+            ozellikler: p.ozellikler,
+            aktif: p.aktif
+          }))
+        )
+      }
+    }
+  } catch (dbError) {
+    console.warn("Supabase import sync notice (non-fatal, store persisted to Redis/File):", dbError)
+  }
+
+  return {
+    success: true,
+    stats: {
+      categories: finalCategories.length,
+      products: finalProducts.length
+    },
+    message:
+      mode === "replace"
+        ? `Menü başarıyla sıfırlandı ve yüklendi (${finalCategories.length} kategori, ${finalProducts.length} ürün).`
+        : `Menü başarıyla birleştirildi (${finalCategories.length} kategori, ${finalProducts.length} ürün).`
+  }
+}
