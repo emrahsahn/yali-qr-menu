@@ -26,18 +26,59 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     let active = true
-    Promise.resolve().then(() => {
-      if (!active) return
+
+    const initAuth = async () => {
       const storedUser = localStorage.getItem("yali_user")
+      let initialUser: User | null = null
+
       if (storedUser) {
         try {
-          setUser(JSON.parse(storedUser) as User)
+          initialUser = JSON.parse(storedUser) as User
+          if (active) setUser(initialUser)
         } catch {
           localStorage.removeItem("yali_user")
         }
       }
-      setIsLoading(false)
-    })
+
+      // Verify actual server-side session validity against /api/auth
+      if (initialUser) {
+        try {
+          const headers: HeadersInit = {}
+          if (initialUser.token) {
+            headers["Authorization"] = `Bearer ${initialUser.token}`
+          }
+
+          const res = await fetch("/api/auth", {
+            method: "GET",
+            headers
+          })
+
+          if (!active) return
+
+          if (!res.ok) {
+            // Server-side session is invalid or expired
+            localStorage.removeItem("yali_user")
+            setUser(null)
+          } else {
+            const data = await res.json()
+            if (data.authenticated && data.user) {
+              const updatedUser = { ...initialUser, ...data.user }
+              setUser(updatedUser)
+              localStorage.setItem("yali_user", JSON.stringify(updatedUser))
+            }
+          }
+        } catch {
+          // If offline or network error, keep current local state
+        }
+      }
+
+      if (active) {
+        setIsLoading(false)
+      }
+    }
+
+    initAuth()
+
     return () => {
       active = false
     }

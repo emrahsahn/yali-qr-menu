@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 import { mockTables } from "@/lib/supabase/mock-data"
 import { isMockMode } from "@/lib/supabase/client"
+import { verifyStaffSession } from "@/lib/security/auth-guard"
 
 // GET: Belirli bir mekana ait tüm masaları getir
 export async function GET(request: NextRequest) {
@@ -40,9 +41,17 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST: Toplu masa oluştur
+// POST: Toplu masa oluştur (SADECE GÖREVLİ / AUTH GEREKLİDİR)
 export async function POST(request: NextRequest) {
   try {
+    const auth = verifyStaffSession(request)
+    if (!auth.authenticated) {
+      return NextResponse.json(
+        { error: "Yetkisiz işlem. Masa oluşturmak için lütfen görevli girişi yapınız." },
+        { status: 401 }
+      )
+    }
+
     const body = await request.json();
     const { count, startNo, prefix, venue } = body;
 
@@ -107,9 +116,17 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// DELETE: Masa sil
+// DELETE: Masa sil (SADECE GÖREVLİ / AUTH GEREKLİDİR)
 export async function DELETE(request: NextRequest) {
   try {
+    const auth = verifyStaffSession(request)
+    if (!auth.authenticated) {
+      return NextResponse.json(
+        { error: "Yetkisiz işlem. Masa silmek için lütfen görevli girişi yapınız." },
+        { status: 401 }
+      )
+    }
+
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
 
