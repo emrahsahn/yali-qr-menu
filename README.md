@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Next.js](https://img.shields.io/badge/Next.js-16.3.0-black?style=for-the-badge&logo=next.js)
+![Next.js](https://img.shields.io/badge/Next.js-16.3.5-black?style=for-the-badge&logo=next.js)
 ![React](https://img.shields.io/badge/React-19.2.8-61DAFB?style=for-the-badge&logo=react)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.0-3178C6?style=for-the-badge&logo=typescript)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-v4-38B2AC?style=for-the-badge&logo=tailwind-css)
@@ -191,6 +191,16 @@ Tarayıcınızda açın:
 
 ---
 
+### 7. 🗺️ Archify ile Mimari ve Sistem Haritalama
+Sistem mimarisinin, veri akışının ve bileşen etkileşimlerinin interaktif sistem haritalarını üretmek için [Archify](https://github.com/tt-a1i/archify.git) entegre edilmiştir.
+
+```bash
+# Archify sistem doktoru ve kontrolü
+node scratch/archify/archify/bin/archify.mjs doctor
+```
+
+---
+
 ## 🧪 Testleri Çalıştırma
 
 Projeyi derlemek ve test paketini koşturmak için:
@@ -226,6 +236,7 @@ Bu proje modern restoran teknolojileri ve yüksek kullanıcı deneyimi standartl
 
 * **GitHub:** [@emrahsahn](https://github.com/emrahsahn)
 * **LinkedIn:** [Emrah Şahin](https://www.linkedin.com/in/emrahsahn/)
+* **Mimari Haritalama Aracı:** [Archify (tt-a1i)](https://github.com/tt-a1i/archify.git)
 
 ---
 

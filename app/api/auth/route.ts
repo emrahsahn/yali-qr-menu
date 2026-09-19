@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
     authenticated: true,
     user: {
       id: "u_staff",
-      username: auth.username || "yali_yonetim",
+      username: auth.username || process.env.STAFF_USERNAME || "staff",
       displayName: "Restoran Görevlisi",
       role: "staff",
       venue: "restaurant"
@@ -94,26 +94,20 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Configurable credentials from environment variables with strong defaults
-    const validUsername = process.env.STAFF_USERNAME || "yali_yonetim"
-    const validPassword = process.env.STAFF_PASSWORD || "Yali2026!GourmetRestoran"
+    // Configurable credentials strictly from environment variables (.env)
+    const validUsername = process.env.STAFF_USERNAME
+    const validPassword = process.env.STAFF_PASSWORD
 
-    // Support staff username and fallback aliases
-    const isUserValid =
-      timingSafeCompare(cleanUsername.toLowerCase(), validUsername.toLowerCase()) ||
-      timingSafeCompare(cleanUsername.toLowerCase(), "gorevli") ||
-      timingSafeCompare(cleanUsername.toLowerCase(), "admin")
-
-    let isPasswordValid = false
-    if (isUserValid) {
-      if (timingSafeCompare(cleanUsername.toLowerCase(), validUsername.toLowerCase())) {
-        isPasswordValid = timingSafeCompare(String(password), validPassword)
-      } else if (cleanUsername.toLowerCase() === "gorevli") {
-        isPasswordValid = timingSafeCompare(String(password), process.env.STAFF_PASSWORD || "gorevli123")
-      } else if (cleanUsername.toLowerCase() === "admin") {
-        isPasswordValid = timingSafeCompare(String(password), process.env.STAFF_PASSWORD || "admin123")
-      }
+    if (!validUsername || !validPassword) {
+      console.error("STAFF_USERNAME or STAFF_PASSWORD environment variable is not configured.")
+      return NextResponse.json(
+        { error: "Sunucu kimlik doğrulama yapılandırması eksik (.env)." },
+        { status: 500 }
+      )
     }
+
+    const isUserValid = timingSafeCompare(cleanUsername.toLowerCase(), validUsername.toLowerCase())
+    const isPasswordValid = isUserValid && timingSafeCompare(String(password), validPassword)
 
     // 2. Failed attempt handling
     if (!isUserValid || !isPasswordValid) {

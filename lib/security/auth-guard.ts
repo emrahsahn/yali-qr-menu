@@ -1,11 +1,17 @@
 import { NextRequest } from "next/server"
 import crypto from "crypto"
 
-const DEFAULT_SECRET = "yali_super_secret_signing_key_2026"
 const MAX_SESSION_AGE_MS = 7 * 24 * 60 * 60 * 1000 // 7 days
 
 function getSecret(): string {
-  return process.env.AUTH_SECRET || DEFAULT_SECRET
+  const secret = process.env.AUTH_SECRET
+  if (!secret) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error("AUTH_SECRET environment variable is missing in production.")
+    }
+    return "yali_dev_only_session_key_set_in_env"
+  }
+  return secret
 }
 
 // Timing-safe string comparison to prevent timing attacks

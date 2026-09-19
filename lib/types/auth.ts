@@ -11,4 +11,5 @@ export interface User {
   waiterId?: string;
   avatarColor?: string;
   assignedTableIds?: string[];
+  token?: string;
 }
