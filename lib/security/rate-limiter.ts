@@ -12,6 +12,25 @@ const userAttempts = new Map<string, AttemptRecord>();
 const MAX_ATTEMPTS = 5;
 const ATTEMPT_WINDOW_MS = 5 * 60 * 1000; // 5 minutes window for attempts
 
+// Bellek korumasi: saldirgan benzersiz IP/kullanici adlari spray'leyerek Map'i
+// sinirsiz buyutebilir; eski kayitlar duzenli olarak temizlenir.
+const MAX_TRACKED_KEYS = 10000;
+
+function sweepExpiredRecords(map: Map<string, AttemptRecord>): void {
+  const now = Date.now();
+  for (const [key, record] of map) {
+    const expired =
+      (record.blockedUntil !== null && record.blockedUntil <= now) ||
+      (record.blockedUntil === null && now - record.firstAttemptTime > ATTEMPT_WINDOW_MS);
+    if (expired) map.delete(key);
+  }
+}
+
+function sweepIfNeeded(): void {
+  if (ipAttempts.size > MAX_TRACKED_KEYS) sweepExpiredRecords(ipAttempts);
+  if (userAttempts.size > MAX_TRACKED_KEYS) sweepExpiredRecords(userAttempts);
+}
+
 // Kademeli Kilitleme Süreleri (Progressive Lockout Durations):
 // 1. Kilit: 2 dakika (Şifresini unutan yetkiliyi uzun süre mağdur etmez)
 // 2. Kilit: 15 dakika (Israrlı denemelerde caydırıcı kilit)
@@ -81,6 +100,8 @@ function checkSingleTarget(map: Map<string, AttemptRecord>, key: string): {
 }
 
 export function checkRateLimit(ip: string, username?: string): RateLimitStatus {
+  sweepIfNeeded();
+
   // 1. Check IP
   const ipStatus = checkSingleTarget(ipAttempts, ip);
   if (ipStatus.isBlocked) {
@@ -168,6 +189,8 @@ function recordSingleTarget(map: Map<string, AttemptRecord>, key: string): {
 }
 
 export function recordFailedAttempt(ip: string, username?: string): RateLimitStatus {
+  sweepIfNeeded();
+
   const ipResult = recordSingleTarget(ipAttempts, ip);
   let userResult = { isBlocked: false, remaining: MAX_ATTEMPTS, retryAfterSeconds: 0, attemptCount: 0 };
 

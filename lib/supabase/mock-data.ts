@@ -186,11 +186,8 @@ const INITIAL_TABLES: Table[] = [
 
 // Global persistent state across hot-reloads and module evaluations in Node.js server
 declare global {
-  // eslint-disable-next-line no-var
   var __yaliMockCategories: Category[] | undefined;
-  // eslint-disable-next-line no-var
   var __yaliMockProducts: Product[] | undefined;
-  // eslint-disable-next-line no-var
   var __yaliMockTables: Table[] | undefined;
 }
 

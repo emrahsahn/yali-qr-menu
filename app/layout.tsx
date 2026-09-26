@@ -18,10 +18,15 @@ const playfair = Playfair_Display({
 export const metadata: Metadata = {
   title: "Yalı Restaurant | Dijital QR Menü",
   description: "Yalı customer portal and QR menu for restaurant",
-  manifest: "/manifest.json",
   icons: {
-    icon: "/icons/icon-192.png",
-    apple: "/icons/icon-192.png",
+    icon: [
+      { url: '/logo.png', sizes: 'any', type: 'image/png' },
+      { url: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
+    ],
+    shortcut: '/logo.png',
+    apple: [
+      { url: '/logo.png', sizes: '180x180', type: 'image/png' },
+    ],
   },
   appleWebApp: {
     capable: true,

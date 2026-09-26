@@ -12,7 +12,9 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const categoryId = searchParams.get("kategori_id")
-    const includeInactive = searchParams.get("include_inactive") !== "false" // Default to true so status badges show
+    const auth = verifyStaffSession(request)
+    // Pasif (tükenmiş/gizli) ürünleri yalnızca görevli görebilir
+    const includeInactive = auth.authenticated && searchParams.get("include_inactive") !== "false"
 
     let products = await getProducts(includeInactive)
 

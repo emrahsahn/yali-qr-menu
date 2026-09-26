@@ -2,7 +2,7 @@ import fs from "fs"
 import path from "path"
 import { Category, Product } from "@/lib/types/database"
 import { Redis } from "@upstash/redis"
-import { createClient } from "@/lib/supabase/server"
+import { createAdminClient } from "@/lib/supabase/admin"
 
 export interface MenuStoreData {
   categories: Category[];
@@ -13,9 +13,7 @@ const MENU_FILE_PATH = path.join(process.cwd(), "data", "menu.json")
 
 // Global in-memory cache across requests & serverless hot-reloads
 declare global {
-  // eslint-disable-next-line no-var
   var __yaliMenuData: MenuStoreData | undefined;
-  // eslint-disable-next-line no-var
   var __yaliMenuLastFetch: number | undefined;
 }
 
@@ -109,7 +107,7 @@ export async function getMenuStore(): Promise<MenuStoreData> {
   const isSupabaseConfigured = supabaseUrl && supabaseUrl !== "your-supabase-url"
   if (isSupabaseConfigured) {
     try {
-      const supabase = await createClient()
+      const supabase = createAdminClient()
       if (supabase) {
         const [catRes, prodRes] = await Promise.all([
           supabase.from("categories").select("*").order("sira", { ascending: true }),
@@ -158,7 +156,7 @@ export async function persistMenuStore(data: MenuStoreData): Promise<boolean> {
       fs.mkdirSync(dir, { recursive: true })
     }
     fs.writeFileSync(MENU_FILE_PATH, JSON.stringify(data, null, 2), "utf-8")
-  } catch (error) {
+  } catch {
     // Expected on serverless / read-only filesystem
   }
 
@@ -229,7 +227,7 @@ export async function saveProduct(productData: Partial<Product>): Promise<Produc
 
   // Also sync to Supabase if configured
   try {
-    const supabase = await createClient()
+    const supabase = createAdminClient()
     if (supabase) {
       await supabase.from("products").upsert({
         id: product.id,
@@ -259,7 +257,7 @@ export async function toggleProductActive(productId: string): Promise<Product | 
 
   // Also sync to Supabase if configured
   try {
-    const supabase = await createClient()
+    const supabase = createAdminClient()
     if (supabase) {
       await supabase.from("products").update({ aktif: product.aktif }).eq("id", productId)
     }
@@ -277,7 +275,7 @@ export async function deleteProduct(productId: string): Promise<boolean> {
   if (store.products.length !== initialLength) {
     // Also sync to Supabase if configured
     try {
-      const supabase = await createClient()
+      const supabase = createAdminClient()
       if (supabase) {
         await supabase.from("products").delete().eq("id", productId)
       }
@@ -324,7 +322,7 @@ export async function saveCategory(categoryData: Partial<Category>): Promise<Cat
 
   // Also sync to Supabase if configured
   try {
-    const supabase = await createClient()
+    const supabase = createAdminClient()
     if (supabase) {
       await supabase.from("categories").upsert({
         id: category.id,
@@ -349,7 +347,7 @@ export async function deleteCategory(categoryId: string): Promise<boolean> {
 
     // Also sync to Supabase if configured
     try {
-      const supabase = await createClient()
+      const supabase = createAdminClient()
       if (supabase) {
         await supabase.from("categories").delete().eq("id", categoryId)
         await supabase.from("products").delete().eq("kategori_id", categoryId)
@@ -630,7 +628,7 @@ export async function importMenuData(
 
   // 4. Supabase Bağlantısı Varsa Tablolara Toplu Senkronizasyon Yap
   try {
-    const supabase = await createClient()
+    const supabase = createAdminClient()
     if (supabase) {
       if (mode === "replace") {
         // İlgili tabloları temizle

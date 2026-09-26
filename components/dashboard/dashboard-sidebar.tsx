@@ -6,9 +6,7 @@ import { usePathname } from "next/navigation"
 import { useAuth } from "@/lib/context/auth-context"
 import {
   QrCode,
-  Layers,
   LogOut,
-  Shield,
   X,
   ExternalLink
 } from "lucide-react"

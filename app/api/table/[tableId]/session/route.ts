@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
-import { createClient } from "@/lib/supabase/server"
+import { createAdminClient } from "@/lib/supabase/admin"
+import { verifyTableAccess } from "@/lib/security/table-guard"
 
 export async function GET(
   request: NextRequest,
@@ -10,27 +11,15 @@ export async function GET(
     const { searchParams } = new URL(request.url);
     const token = searchParams.get('token');
 
-    if (!token) {
-      return NextResponse.json({ error: "Missing token" }, { status: 400 });
-    }
-
-    const supabase = await createClient();
+    const supabase = createAdminClient();
     if (!supabase) {
       return NextResponse.json({ error: "Supabase not configured (running in mock client)" }, { status: 503 });
     }
 
-    // Configure client headers for token RLS
-    // In server-side client, we can query tables first or call RPC
-    // Let's verify table token
-    const { data: table, error: tableErr } = await supabase
-      .from('tables')
-      .select('id, masa_no')
-      .eq('id', tableId)
-      .eq('qr_token', token)
-      .single();
-
-    if (tableErr || !table) {
-      return NextResponse.json({ error: "Invalid table token" }, { status: 401 });
+    // 1. QR token + masa aktiflik dogrulamasi
+    const access = await verifyTableAccess(supabase, tableId, token);
+    if (!access.ok) {
+      return NextResponse.json({ error: access.error }, { status: access.status });
     }
 
     // Check if there is an active draft session

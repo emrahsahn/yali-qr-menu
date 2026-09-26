@@ -13,14 +13,23 @@ import {
 
 // Helper to safely extract client IP
 function getClientIp(request: NextRequest): string {
-  const forwarded = request.headers.get("x-forwarded-for")
-  if (forwarded) {
-    return forwarded.split(",")[0].trim()
-  }
+  // x-real-ip trusted proxy (Vercel) tarafından set edilir ve client'tan gelen
+  // sahte değerler üstüne yazilir; once buna bak.
   const realIp = request.headers.get("x-real-ip")
   if (realIp) {
     return realIp.trim()
   }
+
+  // x-forwarded-for: "sahte, gercek-client" formatinda client sahte deger gonderebilir;
+  // bu yuzden en sagdaki (proxy'nin ekledigi) deger kullanilir.
+  const forwarded = request.headers.get("x-forwarded-for")
+  if (forwarded) {
+    const parts = forwarded.split(",").map((p) => p.trim()).filter(Boolean)
+    if (parts.length > 0) {
+      return parts[parts.length - 1]
+    }
+  }
+
   return "127.0.0.1"
 }
 

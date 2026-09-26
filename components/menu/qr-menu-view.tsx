@@ -43,11 +43,12 @@ function MenuMainContent() {
   }
 
   // Active or displayed products
+  const activeProducts = products.filter(p => p.aktif !== false);
   const isSearching = isSearchOpen && searchQuery.trim().length > 0;
   const q = searchQuery.trim().toLowerCase();
 
   const filteredProducts = isSearching
-    ? products.filter(p => {
+    ? activeProducts.filter(p => {
         const matchTr = (p.ad_tr || "").toLowerCase().includes(q);
         const matchEn = (p.ad_en || "").toLowerCase().includes(q);
         const matchDescTr = (p.aciklama_tr || "").toLowerCase().includes(q);
@@ -63,8 +64,8 @@ function MenuMainContent() {
         return matchTr || matchEn || matchDescTr || matchDescEn || matchAllergens || matchTag;
       })
     : activeCategory
-    ? products.filter(p => p.kategori_id === activeCategory)
-    : products;
+    ? activeProducts.filter(p => p.kategori_id === activeCategory)
+    : activeProducts;
 
   return (
     <>
@@ -226,31 +227,30 @@ export function QrMenuView({
     const tableParam = params.get("table");
     const isStaff = !!localStorage.getItem("yali_user");
 
+    let access: boolean;
+
     // 1. If scanned with physical QR code (?qr=... or ?table=...)
     if (qrParam || tableParam) {
       grantQrSession();
-      setHasAccess(true);
+      access = true;
       // Clean query parameter from address bar so sharing URL only shares /menu (which locks outside)
       try {
         const cleanUrl = window.location.pathname;
         window.history.replaceState({}, "", cleanUrl);
       } catch {}
-      return;
-    }
-
-    // 2. If staff is logged in, grant access for testing
-    if (isStaff) {
+    } else if (isStaff) {
+      // 2. If staff is logged in, grant access for testing
       grantQrSession();
-      setHasAccess(true);
-      return;
+      access = true;
+    } else {
+      // 3. Verify if user has an active 2-hour QR session
+      access = isQrSessionValid();
     }
 
-    // 3. Verify if user has an active 2-hour QR session
-    if (isQrSessionValid()) {
-      setHasAccess(true);
-    } else {
-      setHasAccess(false);
-    }
+    // Kapı kontrolü window/localStorage okur (SSR'da erişilemez); hidrasyon
+    // uyumunu korumak için sonucu effect içinde tek seferlik uygularız.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setHasAccess(access);
   }, []);
 
   if (hasAccess === null) {

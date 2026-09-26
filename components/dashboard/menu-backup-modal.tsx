@@ -132,7 +132,7 @@ export function MenuBackupModal({ isOpen, onClose, onSuccess }: MenuBackupModalP
           warnings: data.warnings || []
         })
       }
-    } catch (err) {
+    } catch {
       setErrorMessage("Yüklenen dosya geçerli bir JSON dosyası değil veya bozuk.")
       setPreview({
         valid: false,

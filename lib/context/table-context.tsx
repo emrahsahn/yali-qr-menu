@@ -86,7 +86,7 @@ export function TableProvider({
   const reloadMenu = useCallback(async () => {
     try {
       const [prodRes, catRes] = await Promise.all([
-        fetch("/api/products?include_inactive=true", { cache: "no-store" }),
+        fetch("/api/products", { cache: "no-store" }),
         fetch("/api/categories", { cache: "no-store" })
       ]);
 

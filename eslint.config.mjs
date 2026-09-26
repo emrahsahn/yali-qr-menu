@@ -25,6 +25,9 @@ const eslintConfig = defineConfig([
     ".agents/**",
     "supabase/**",
     "public/**",
+    // Local tooling workspaces (Python venv, generated bundles, diagrams):
+    "strix/**",
+    "scratch/**",
   ]),
 ]);
 

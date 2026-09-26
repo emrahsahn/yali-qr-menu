@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from "react"
 import Image from "next/image"
-import { ArrowRight, RotateCcw, Utensils } from "lucide-react"
+import { ArrowRight, Utensils } from "lucide-react"
 
 interface YaliPreloaderProps {
   onComplete?: () => void
@@ -96,10 +96,6 @@ export function YaliPreloader({
       setIsFadingOut(false)
       onCompleteRef.current?.()
     }, 500)
-  }
-
-  const handleReplay = () => {
-    runSequence()
   }
 
   if (!isVisible) return null

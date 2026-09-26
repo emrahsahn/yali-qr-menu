@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useEffect } from "react"
-import { TrendingUp, Users, PieChart, Building2, Info, BarChart3 } from "lucide-react"
+import { BarChart3 } from "lucide-react"
 import { auditLogger, AuditLogEntry } from "@/lib/services/audit-logger"
 
 export function AdminCharts() {

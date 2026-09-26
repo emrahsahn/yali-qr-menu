@@ -1,43 +1,59 @@
 import { NextRequest, NextResponse } from "next/server"
-import { createClient } from "@/lib/supabase/server"
+import crypto from "crypto"
+import { createAdminClient } from "@/lib/supabase/admin"
 import { mockTables } from "@/lib/supabase/mock-data"
 import { isMockMode } from "@/lib/supabase/client"
 import { verifyStaffSession } from "@/lib/security/auth-guard"
+import { Table } from "@/lib/types/database"
+
+const PUBLIC_TABLE_COLUMNS = "id, masa_no, masa_adi, venue, aktif, created_at"
+const KNOWN_VENUES = new Set(["restaurant", "cafe", "club", "seafood"])
+
+// qr_token masa erisiminin tek gizli anahtari oldugu icin yalnizca
+// gorevli oturumu olan istemcilere aciklanir.
+function stripTokens(tables: Table[]): Omit<Table, "qr_token">[] {
+  return tables.map(({ qr_token: _qrToken, ...rest }) => rest)
+}
 
 // GET: Belirli bir mekana ait tüm masaları getir
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const venue = searchParams.get('venue') || 'restaurant';
+    const auth = verifyStaffSession(request);
+    const includeToken = auth.authenticated;
 
     if (isMockMode) {
       const filtered = mockTables.filter(t => t.venue === venue);
-      return NextResponse.json({ tables: filtered });
+      const safeTables = includeToken ? filtered : stripTokens(filtered);
+      return NextResponse.json({ tables: safeTables });
     }
 
-    const supabase = await createClient();
+    const supabase = createAdminClient();
     if (!supabase) {
       const filtered = mockTables.filter(t => t.venue === venue);
-      return NextResponse.json({ tables: filtered });
+      const safeTables = includeToken ? filtered : stripTokens(filtered);
+      return NextResponse.json({ tables: safeTables });
     }
 
     const { data: tables, error } = await supabase
       .from('tables')
-      .select('*')
+      .select(includeToken ? '*' : PUBLIC_TABLE_COLUMNS)
       .eq('venue', venue)
       .order('masa_no');
 
     if (error) {
       // Fallback to mock data if table column doesn't exist yet or query fails
       const filtered = mockTables.filter(t => t.venue === venue);
-      return NextResponse.json({ tables: filtered });
+      const safeTables = includeToken ? filtered : stripTokens(filtered);
+      return NextResponse.json({ tables: safeTables });
     }
 
     return NextResponse.json({ tables: tables || [] });
   } catch {
     const venue = new URL(request.url).searchParams.get('venue') || 'restaurant';
     const filtered = mockTables.filter(t => t.venue === venue);
-    return NextResponse.json({ tables: filtered });
+    return NextResponse.json({ tables: stripTokens(filtered) });
   }
 }
 
@@ -55,17 +71,28 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { count, startNo, prefix, venue } = body;
 
-    if (!count || !startNo || !venue) {
-      return NextResponse.json({ error: "Missing required parameters" }, { status: 400 });
+    const parsedCount = Number(count)
+    const parsedStartNo = Number(startNo)
+    if (!Number.isInteger(parsedCount) || parsedCount < 1 || parsedCount > 500) {
+      return NextResponse.json({ error: "count 1-500 arası bir tam sayı olmalıdır." }, { status: 400 })
+    }
+    if (!Number.isInteger(parsedStartNo) || parsedStartNo < 1 || parsedStartNo > 9999) {
+      return NextResponse.json({ error: "startNo 1-9999 arası bir tam sayı olmalıdır." }, { status: 400 })
+    }
+    if (typeof venue !== "string" || !KNOWN_VENUES.has(venue)) {
+      return NextResponse.json({ error: "Geçersiz mekân (venue)." }, { status: 400 })
     }
 
+    const cleanPrefix = typeof prefix === "string" ? prefix.trim().slice(0, 40) : ""
+
     const newTablesData = [];
-    for (let i = 0; i < count; i++) {
-      const masaNo = parseInt(startNo) + i;
-      const masaAdi = prefix ? `${prefix} ${masaNo}` : `Masa ${masaNo}`;
-      const randomToken = "token_" + Math.random().toString(36).substring(2, 12);
-      const tableId = "tbl_" + Math.random().toString(36).substring(2, 10);
-      
+    for (let i = 0; i < parsedCount; i++) {
+      const masaNo = parsedStartNo + i;
+      const masaAdi = cleanPrefix ? `${cleanPrefix} ${masaNo}` : `Masa ${masaNo}`;
+      // Kriptografik rastgelelik: Math.random tahmin edilebilir oldugu icin kullanilmaz.
+      const randomToken = "tok_" + crypto.randomBytes(16).toString("hex");
+      const tableId = "tbl_" + crypto.randomBytes(8).toString("hex");
+
       newTablesData.push({
         id: tableId,
         masa_no: masaNo,
@@ -82,13 +109,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, tables: newTablesData });
     }
 
-    const supabase = await createClient();
+    const supabase = createAdminClient();
     if (!supabase) {
       newTablesData.forEach(t => mockTables.push(t));
       return NextResponse.json({ success: true, tables: newTablesData });
     }
 
-    // Prepare insert objects for Supabase (id and token auto-generated if omitted, or provided)
     const dbInserts = newTablesData.map(t => ({
       id: t.id,
       masa_no: t.masa_no,
@@ -130,7 +156,7 @@ export async function DELETE(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
 
-    if (!id) {
+    if (!id || typeof id !== "string") {
       return NextResponse.json({ error: "Missing table id" }, { status: 400 });
     }
 
@@ -140,7 +166,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ success: true });
     }
 
-    const supabase = await createClient();
+    const supabase = createAdminClient();
     if (!supabase) {
       const idx = mockTables.findIndex(t => t.id === id);
       if (idx !== -1) mockTables.splice(idx, 1);

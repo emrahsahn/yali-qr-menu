@@ -1,8 +1,6 @@
 "use client"
 
 import React, { useState, useEffect, useCallback, useRef, useSyncExternalStore } from "react"
-import { useRouter } from "next/navigation"
-import { useAuth } from "@/lib/context/auth-context"
 import { Product, Category } from "@/lib/types/database"
 import { ProductManagementModal } from "@/components/dashboard/product-management-modal"
 import { CategoryManagementModal } from "@/components/dashboard/category-management-modal"
@@ -21,28 +19,19 @@ import {
   EyeOff,
   Edit,
   Trash2,
-  Clock,
   Sparkles,
   QrCode,
   Download,
   Copy,
   Check,
   ExternalLink,
-  LogOut,
-  Moon,
-  Sun,
   Database
 } from "lucide-react"
-import { useTheme } from "next-themes"
 
 // Static subscription helper for origin
 const subscribeToNothing = (_onChange: () => void) => () => {}
 
 export default function StaffPanelPage() {
-  const { user, isLoading: authLoading, logout } = useAuth()
-  const router = useRouter()
-  const { theme, setTheme } = useTheme()
-
   const [activeTab, setActiveTab] = useState<"menu" | "qr">("menu")
 
   // Menu data
