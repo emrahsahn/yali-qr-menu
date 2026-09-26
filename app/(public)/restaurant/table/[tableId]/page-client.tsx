@@ -54,15 +54,13 @@ function MenuContent({ tableNo, tableName }: { tableNo: number; tableName?: stri
     return <LoadingSkeleton />;
   }
 
-  // Active products only
-  const activeProducts = products.filter(p => p.aktif !== false);
-
+  // Müşteriler tükenmiş ürünleri görebilmelidir (bu ürünler UI'da Tükendi olarak çizilir)
   // Filter products by search query or selected category
   const isSearching = isSearchOpen && searchQuery.trim().length > 0;
   const q = searchQuery.trim().toLowerCase();
 
   const filteredProducts = isSearching
-    ? activeProducts.filter(p => {
+    ? products.filter(p => {
         const matchTr = (p.ad_tr || "").toLowerCase().includes(q);
         const matchEn = (p.ad_en || "").toLowerCase().includes(q);
         const matchDescTr = (p.aciklama_tr || "").toLowerCase().includes(q);
@@ -77,8 +75,8 @@ function MenuContent({ tableNo, tableName }: { tableNo: number; tableName?: stri
         return matchTr || matchEn || matchDescTr || matchDescEn || matchAllergens || matchTag;
       })
     : activeCategory
-    ? activeProducts.filter(p => p.kategori_id === activeCategory)
-    : activeProducts;
+    ? products.filter(p => p.kategori_id === activeCategory)
+    : products;
 
   return (
     <>

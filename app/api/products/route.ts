@@ -12,9 +12,9 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const categoryId = searchParams.get("kategori_id")
-    const auth = verifyStaffSession(request)
-    // Pasif (tükenmiş/gizli) ürünleri yalnızca görevli görebilir
-    const includeInactive = auth.authenticated && searchParams.get("include_inactive") !== "false"
+    // Müşteriler tükenmiş ürünleri de 'Tükendi' etiketiyle görebilmeli.
+    // İsteğe bağlı olarak include_inactive=false parametresi ile filtrelenebilir.
+    const includeInactive = searchParams.get("include_inactive") !== "false"
 
     let products = await getProducts(includeInactive)
 

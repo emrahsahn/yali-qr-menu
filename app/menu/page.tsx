@@ -21,8 +21,8 @@ export const metadata = {
 
 export default async function MenuPage() {
   const categories = await getCategories()
-  // Public QR menü pasif (gizli/tükenmiş) ürünleri asla görmemeli
-  const products = await getProducts(false)
+  // Müşterinin menüde tükenmiş (pasif) ürünleri de 'Tükendi' olarak görmesi istendiği için true gönderilir
+  const products = await getProducts(true)
 
   return <QrMenuView initialCategories={categories} initialProducts={products} />
 }
