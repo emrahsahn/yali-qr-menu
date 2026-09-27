@@ -52,3 +52,7 @@ yarn-error.log*
 # Playwright Test Outputs
 /test-results/
 /playwright-report/
+
+# Local history backups (may contain old secrets — never commit/push)
+yali-yedek-*/
+*.git/
